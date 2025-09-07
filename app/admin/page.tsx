@@ -22,13 +22,6 @@ import {
   Shield,
   RefreshCw,
   Eye,
-  Calendar,
-  Heart,
-  Droplets,
-  Wind,
-  Thermometer,
-  TrendingUp,
-  Clock,
   Database
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -103,23 +96,25 @@ export default function AdminDashboard() {
       router.push('/auth/signin');
       return;
     }
-    checkAdminAccess();
-  }, [session, status, router]);
-
-  const checkAdminAccess = async () => {
-    try {
-      const response = await fetch('/api/admin/check');
-      if (!response.ok) {
-        toast.error('Access denied - Admin privileges required');
+    
+    const checkAccess = async () => {
+      try {
+        const response = await fetch('/api/admin/check');
+        if (!response.ok) {
+          toast.error('Access denied - Admin privileges required');
+          router.push('/dashboard');
+          return;
+        }
+        loadData();
+      } catch (error) {
+        console.error('Error checking admin access:', error);
         router.push('/dashboard');
-        return;
       }
-      loadData();
-    } catch (error) {
-      console.error('Error checking admin access:', error);
-      router.push('/dashboard');
-    }
-  };
+    };
+    
+    checkAccess();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status, router]);
 
   const loadData = async () => {
     setLoading(true);
