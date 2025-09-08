@@ -3,7 +3,7 @@ module.exports = {
     name: 'mpscan',
     script: 'npm',
     args: 'start',
-    cwd: '/home/ubuntu/nextjs-app',
+    cwd: '/var/www/mpscan/MP-scan',
     env: {
       NODE_ENV: 'production',
       PORT: 3000,
