@@ -27,7 +27,7 @@ import { useVitals, useUserProfile } from '@/hooks/useVitals';
 
 export default function DashboardPage() {
   const { data: session } = useSession();
-  const { fetchLatestVitals, fetchAnalytics } = useVitals();
+  const { fetchLatestVitals } = useVitals();
   const { profile } = useUserProfile();
   const [latestVitals, setLatestVitals] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -40,14 +40,52 @@ export default function DashboardPage() {
   const loadDashboardData = async () => {
     setIsLoading(true);
     try {
-      const [vitalsData, analyticsData] = await Promise.all([
+      const [vitalsResponse, analyticsResponse] = await Promise.all([
         fetchLatestVitals(),
-        fetchAnalytics('7d')
+        fetch('/api/analytics')
+          .then(res => {
+            if (!res.ok) {
+              console.error('Analytics API failed with status:', res.status);
+              return { success: false };
+            }
+            return res.json();
+          })
+          .catch(err => {
+            console.error('Analytics API error:', err);
+            return { success: false };
+          })
       ]);
-      setLatestVitals(vitalsData?.data);
-      setAnalytics(analyticsData?.data);
+      
+      setLatestVitals(vitalsResponse?.data);
+      
+      if (analyticsResponse?.success) {
+        setAnalytics(analyticsResponse.analytics);
+      } else {
+        // Set default analytics if API fails
+        setAnalytics({
+          totals: { users: 0, patients: 0, vitals: 0, faceScans: 0 },
+          vitalsTimeline: { today: 0, thisWeek: 0, thisMonth: 0, weeklyTrend: '0' },
+          averages: {},
+          riskAssessment: null,
+          sources: { device: 0, manual: 0, import: 0 },
+          latest: null,
+          healthScore: 0,
+          userRole: 'user'
+        });
+      }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      // Set default values on error
+      setAnalytics({
+        totals: { users: 0, patients: 0, vitals: 0, faceScans: 0 },
+        vitalsTimeline: { today: 0, thisWeek: 0, thisMonth: 0, weeklyTrend: '0' },
+        averages: {},
+        riskAssessment: null,
+        sources: { device: 0, manual: 0, import: 0 },
+        latest: null,
+        healthScore: 0,
+        userRole: 'user'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -69,33 +107,33 @@ export default function DashboardPage() {
 
   const stats = [
     {
-      title: 'Total Patients',
-      value: '1,234',
-      change: '+12%',
+      title: analytics?.userRole === 'admin' ? 'Total Users' : 'Total Patients',
+      value: analytics?.totals?.patients || 0,
+      change: `${analytics?.vitalsTimeline?.weeklyTrend || 0}%`,
       icon: Users,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
-      title: 'Appointments Today',
-      value: '18',
-      change: '+3',
+      title: 'Vitals Today',
+      value: analytics?.vitalsTimeline?.today || 0,
+      change: analytics?.vitalsTimeline?.today > 0 ? '+' + analytics?.vitalsTimeline?.today : '0',
       icon: Calendar,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
     {
-      title: 'Active Prescriptions',
-      value: '456',
-      change: '+8%',
-      icon: Pill,
+      title: 'Total Vitals',
+      value: analytics?.totals?.vitals || 0,
+      change: `+${analytics?.vitalsTimeline?.thisWeek || 0}`,
+      icon: Activity,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
     },
     {
-      title: 'Pending Lab Results',
-      value: '23',
-      change: '-5',
+      title: 'Face Scans',
+      value: analytics?.totals?.faceScans || 0,
+      change: analytics?.sources?.device > 0 ? `${analytics?.sources?.device} device` : '0',
       icon: FileText,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
@@ -174,6 +212,35 @@ export default function DashboardPage() {
               {getHealthScoreLabel()}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div>
+        <h2 className="text-xl font-bold mb-4">Overview</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <Card key={index} className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-3 rounded-lg ${stat.bgColor}`}>
+                    <Icon className={`h-6 w-6 ${stat.color}`} />
+                  </div>
+                  {stat.change && (
+                    <span className={`text-sm font-medium ${
+                      stat.change.startsWith('+') || stat.change.includes('device') ? 'text-green-600' : 
+                      stat.change.startsWith('-') ? 'text-red-600' : 'text-gray-600'
+                    }`}>
+                      {stat.change}
+                    </span>
+                  )}
+                </div>
+                <p className="text-2xl font-bold">{stat.value}</p>
+                <p className="text-sm text-muted-foreground">{stat.title}</p>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
@@ -275,28 +342,35 @@ export default function DashboardPage() {
         <Card className="p-6">
           <div className="space-y-4">
             {[
-              { 
+              analytics?.vitalsTimeline?.today > 0 && { 
                 icon: CheckCircle, 
                 color: 'text-green-600', 
-                title: 'Vitals Recorded', 
-                description: 'Blood pressure and heart rate measured', 
-                time: '2 hours ago' 
+                title: 'Vitals Recorded Today', 
+                description: `${analytics.vitalsTimeline.today} vital recording${analytics.vitalsTimeline.today > 1 ? 's' : ''}`, 
+                time: 'Today' 
               },
-              { 
+              analytics?.latest && { 
                 icon: Activity, 
                 color: 'text-blue-600', 
-                title: 'Health Score Updated', 
-                description: `Your health score improved to ${healthScore}%`, 
-                time: '5 hours ago' 
+                title: 'Latest Vital Update', 
+                description: `Patient: ${analytics.latest.patientName}`, 
+                time: new Date(analytics.latest.recordedAt).toLocaleString() 
               },
               { 
-                icon: FileText, 
+                icon: TrendingUp, 
                 color: 'text-purple-600', 
-                title: 'Report Generated', 
-                description: 'Weekly health report is ready', 
-                time: 'Yesterday' 
+                title: 'Health Score', 
+                description: `Current score: ${healthScore}%`, 
+                time: 'Based on latest vitals' 
               },
-            ].map((activity, index) => {
+              analytics?.vitalsTimeline?.thisWeek > 0 && { 
+                icon: FileText, 
+                color: 'text-orange-600', 
+                title: 'Weekly Activity', 
+                description: `${analytics.vitalsTimeline.thisWeek} vitals recorded this week`, 
+                time: `${analytics.vitalsTimeline.weeklyTrend}% change from last week` 
+              },
+            ].filter(Boolean).slice(0, 4).map((activity, index) => {
               const Icon = activity.icon;
               return (
                 <div key={index} className="flex gap-4">
@@ -314,6 +388,104 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+
+      {/* Risk Assessment Summary */}
+      {analytics?.riskAssessment && (
+        <div>
+          <h2 className="text-xl font-bold mb-4">Risk Assessment Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertCircle className="h-5 w-5 text-blue-600" />
+                <h3 className="font-semibold">Diabetic Risk Distribution</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Low Risk</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-green-500 transition-all"
+                        style={{ width: `${(analytics.riskAssessment.diabetic.low / (analytics.riskAssessment.diabetic.low + analytics.riskAssessment.diabetic.medium + analytics.riskAssessment.diabetic.high)) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium">{analytics.riskAssessment.diabetic.low}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Medium Risk</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-yellow-500 transition-all"
+                        style={{ width: `${(analytics.riskAssessment.diabetic.medium / (analytics.riskAssessment.diabetic.low + analytics.riskAssessment.diabetic.medium + analytics.riskAssessment.diabetic.high)) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium">{analytics.riskAssessment.diabetic.medium}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">High Risk</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-red-500 transition-all"
+                        style={{ width: `${(analytics.riskAssessment.diabetic.high / (analytics.riskAssessment.diabetic.low + analytics.riskAssessment.diabetic.medium + analytics.riskAssessment.diabetic.high)) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium">{analytics.riskAssessment.diabetic.high}</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+            
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Heart className="h-5 w-5 text-red-600" />
+                <h3 className="font-semibold">Hypertension Risk Distribution</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Low Risk</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-green-500 transition-all"
+                        style={{ width: `${(analytics.riskAssessment.hypertension.low / (analytics.riskAssessment.hypertension.low + analytics.riskAssessment.hypertension.medium + analytics.riskAssessment.hypertension.high)) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium">{analytics.riskAssessment.hypertension.low}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Medium Risk</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-yellow-500 transition-all"
+                        style={{ width: `${(analytics.riskAssessment.hypertension.medium / (analytics.riskAssessment.hypertension.low + analytics.riskAssessment.hypertension.medium + analytics.riskAssessment.hypertension.high)) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium">{analytics.riskAssessment.hypertension.medium}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">High Risk</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-red-500 transition-all"
+                        style={{ width: `${(analytics.riskAssessment.hypertension.high / (analytics.riskAssessment.hypertension.low + analytics.riskAssessment.hypertension.medium + analytics.riskAssessment.hypertension.high)) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium">{analytics.riskAssessment.hypertension.high}</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div>
