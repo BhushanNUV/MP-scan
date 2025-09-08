@@ -150,7 +150,11 @@ export default function ReportsPage() {
     // Calculate ECG metrics for display only if heartRate exists
     const hasHeartRate = vital.heartRate && vital.heartRate > 0;
     const heartRate = vital.heartRate || 72;
+    const hrvSdnn = vital.hrvSdnn || 42;
     const stressLevel = vital.stressLevel || 0.3;
+    const oxygenSaturation = vital.oxygenSaturation || 98;
+    const pnsIndex = vital.pnsIndex || 0.5;
+    const snsIndex = vital.snsIndex || 0.5;
     const rrInterval = 60 / heartRate;
     const prInterval = 160 - (heartRate - 60) * 0.4;
     const qrsDuration = 90 + stressLevel * 20;
@@ -159,6 +163,104 @@ export default function ReportsPage() {
     const pWaveDuration = 80 + (heartRate > 100 ? -10 : 0);
     const tWaveDuration = 160 - (heartRate - 60) * 0.5;
     const tWaveDeflection = 0.2 + (stressLevel * 0.1);
+
+    // Generate ECG waveform data for SVG
+    const generateECGPath = () => {
+      const duration = 3; // 3 seconds of ECG
+      const sampleRate = 250; // samples per second
+      const totalSamples = duration * sampleRate;
+      const beatTimes: number[] = [];
+      
+      // Generate beat times with HRV
+      let currentTime = 0;
+      while (currentTime < duration) {
+        const hrvVariation = (Math.random() - 0.5) * (hrvSdnn / 1000);
+        const interval = rrInterval + hrvVariation;
+        beatTimes.push(currentTime);
+        currentTime += Math.max(0.4, Math.min(2, interval));
+      }
+      
+      // Generate PQRST complex
+      const generatePQRST = (timeInBeat: number, beatDuration: number) => {
+        const normTime = timeInBeat / beatDuration;
+        let amplitude = 0;
+        
+        // Wave timing parameters
+        const pStart = 0.05, pEnd = 0.15;
+        const qStart = 0.17, qEnd = 0.19;
+        const rStart = 0.19, rEnd = 0.23;
+        const sStart = 0.23, sEnd = 0.25;
+        const tStart = 0.30, tEnd = 0.55;
+        
+        // P wave
+        if (normTime >= pStart && normTime < pEnd) {
+          const pProgress = (normTime - pStart) / (pEnd - pStart);
+          amplitude = 0.15 * Math.sin(Math.PI * pProgress);
+        }
+        // Q wave
+        else if (normTime >= qStart && normTime < qEnd) {
+          const qProgress = (normTime - qStart) / (qEnd - qStart);
+          amplitude = -0.1 * Math.sin(Math.PI * qProgress);
+        }
+        // R wave
+        else if (normTime >= rStart && normTime < rEnd) {
+          const rProgress = (normTime - rStart) / (rEnd - rStart);
+          amplitude = 1.0 * Math.sin(Math.PI * rProgress);
+        }
+        // S wave
+        else if (normTime >= sStart && normTime < sEnd) {
+          const sProgress = (normTime - sStart) / (sEnd - sStart);
+          amplitude = -0.3 * Math.sin(Math.PI * sProgress);
+        }
+        // T wave
+        else if (normTime >= tStart && normTime < tEnd) {
+          const tProgress = (normTime - tStart) / (tEnd - tStart);
+          amplitude = 0.35 * Math.sin(Math.PI * tProgress);
+          
+          // Modify T wave based on conditions
+          if (stressLevel > 0.5) amplitude *= 0.8;
+          if (oxygenSaturation < 90) amplitude *= 0.7;
+        }
+        
+        return amplitude;
+      };
+      
+      // Generate path points
+      const points: string[] = [];
+      for (let i = 0; i < totalSamples; i++) {
+        const sampleTime = i / sampleRate;
+        let amplitude = 0;
+        
+        // Find current beat
+        for (let j = 0; j < beatTimes.length; j++) {
+          const beatTime = beatTimes[j];
+          const nextBeatTime = beatTimes[j + 1] || beatTime + rrInterval;
+          
+          if (sampleTime >= beatTime && sampleTime < nextBeatTime) {
+            const timeInBeat = sampleTime - beatTime;
+            const beatDuration = nextBeatTime - beatTime;
+            amplitude = generatePQRST(timeInBeat, beatDuration);
+            break;
+          }
+        }
+        
+        // Add baseline wander and noise
+        amplitude += 0.02 * Math.sin(2 * Math.PI * 0.15 * sampleTime);
+        amplitude += (Math.random() - 0.5) * 0.01;
+        
+        // Scale for SVG (x: 0-800, y: centered at 150)
+        const x = (i / totalSamples) * 800;
+        const y = 150 - amplitude * 100;
+        
+        if (i === 0) {
+          points.push(`M ${x} ${y}`);
+        } else {
+          points.push(`L ${x} ${y}`);
+        }
+      }
+      
+      return points.join(' ');
+    };
 
     // Generate the print content
     const printContent = `
@@ -171,6 +273,8 @@ export default function ReportsPage() {
               body { margin: 0; }
               .no-print { display: none; }
               @page { margin: 0.5in; }
+              svg { page-break-inside: avoid; }
+              .ecg-section { page-break-inside: avoid; }
             }
             body {
               font-family: 'Segoe UI', Arial, sans-serif;
@@ -342,6 +446,31 @@ export default function ReportsPage() {
             <h2>ECG Analysis (Under Research)</h2>
             <div class="ecg-section">
               <div class="ecg-note">ECG waveform analysis based on vital parameters</div>
+              
+              <!-- ECG Waveform Graph -->
+              <div style="background: #1a1a1a; border-radius: 8px; padding: 20px; margin: 15px 0;">
+                <svg width="100%" height="300" viewBox="0 0 800 300" style="display: block;">
+                  <!-- Grid Background -->
+                  <defs>
+                    <pattern id="smallGrid" width="10" height="10" patternUnits="userSpaceOnUse">
+                      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255, 182, 193, 0.2)" stroke-width="0.5"/>
+                    </pattern>
+                    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                      <rect width="50" height="50" fill="url(#smallGrid)"/>
+                      <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(255, 182, 193, 0.4)" stroke-width="1"/>
+                    </pattern>
+                  </defs>
+                  <rect width="800" height="300" fill="url(#grid)" />
+                  
+                  <!-- ECG Waveform -->
+                  <path d="${generateECGPath()}" fill="none" stroke="#00ff00" stroke-width="2"/>
+                  
+                  <!-- Labels -->
+                  <text x="10" y="20" fill="#00ff00" font-size="12" font-family="monospace">Lead II</text>
+                  <text x="10" y="290" fill="#00ff00" font-size="10" font-family="monospace">25mm/s 10mm/mV</text>
+                </svg>
+              </div>
+              
               <div class="metrics-grid" style="margin-top: 15px;">
                 <div class="metric">
                   <div class="metric-label">Heart Rate</div>

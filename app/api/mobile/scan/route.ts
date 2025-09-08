@@ -3,42 +3,54 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
-    // Get API token from header
-    const authHeader = request.headers.get('Authorization');
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { 
-          success: false,
-          message: 'Authorization token required' 
-        },
-        { status: 401 }
-      );
-    }
-
-    const apiToken = authHeader.substring(7);
-
-    // Verify user
-    const user = await prisma.user.findUnique({
-      where: { apiToken },
-      include: {
-        patients: {
-          take: 1,
-        },
-      },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { 
-          success: false,
-          message: 'Invalid token' 
-        },
-        { status: 401 }
-      );
-    }
-
     const data = await request.json();
+    
+    // Optional: Get API token from header if provided
+    const authHeader = request.headers.get('Authorization');
+    let user = null;
+    
+    // If token is provided, try to get the user
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const apiToken = authHeader.substring(7);
+      user = await prisma.user.findUnique({
+        where: { apiToken },
+        include: {
+          patients: {
+            take: 1,
+          },
+        },
+      });
+    }
+    
+    // If no token or user not found, create or use a default public user
+    if (!user) {
+      // Try to find or create a public/anonymous user for storing data
+      user = await prisma.user.findFirst({
+        where: { email: 'public@device.local' },
+        include: {
+          patients: {
+            take: 1,
+          },
+        },
+      });
+      
+      if (!user) {
+        // Create a public user for anonymous device submissions
+        user = await prisma.user.create({
+          data: {
+            email: 'public@device.local',
+            password: 'not-used', // This account won't be used for login
+            name: 'Public Device User',
+            role: 'device',
+          },
+          include: {
+            patients: {
+              take: 1,
+            },
+          },
+        });
+      }
+    }
 
     // Extract all fields from request
     const {
