@@ -44,6 +44,10 @@ interface Vital {
   recordedAt: string;
   source: string;
   
+  // User Info
+  name?: string;
+  phoneNumber?: string;
+  
   // Basic Vitals
   heartRate?: number;
   prq?: number;
@@ -108,7 +112,6 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedVital, setSelectedVital] = useState<Vital | null>(null);
   const [filterPeriod, setFilterPeriod] = useState('all');
-  const [filterSource, setFilterSource] = useState('all');
 
   useEffect(() => {
     loadVitals();
@@ -144,11 +147,6 @@ export default function ReportsPage() {
       if (filterPeriod === 'week' && diffDays > 7) return false;
       if (filterPeriod === 'month' && diffDays > 30) return false;
       if (filterPeriod === '3months' && diffDays > 90) return false;
-    }
-    
-    // Filter by source
-    if (filterSource !== 'all' && vital.source !== filterSource) {
-      return false;
     }
     
     return true;
@@ -291,16 +289,6 @@ export default function ReportsPage() {
               </SelectContent>
             </Select>
 
-            <Select value={filterSource} onValueChange={setFilterSource}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select source" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sources</SelectItem>
-                <SelectItem value="manual">Manual Entry</SelectItem>
-                <SelectItem value="device">Device Scan</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
@@ -315,8 +303,8 @@ export default function ReportsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Source</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>
                     <div className="flex items-center gap-1">
                       <Heart className="h-4 w-4" />
@@ -330,16 +318,11 @@ export default function ReportsPage() {
                     </div>
                   </TableHead>
                   <TableHead>BP</TableHead>
-                  <TableHead>
-                    <div className="flex items-center gap-1">
-                      <Brain className="h-4 w-4" />
-                      Stress
-                    </div>
-                  </TableHead>
                   <TableHead>HRV</TableHead>
                   <TableHead>Wellness</TableHead>
                   <TableHead>Health Risks</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -354,20 +337,15 @@ export default function ReportsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredVitals.map((vital) => {
+                  filteredVitals.map((vital: any) => {
                     const status = getHealthStatus(vital);
                     return (
                       <TableRow key={vital.id}>
                         <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {formatDate(vital.recordedAt)}
-                          </div>
+                          {vital.name || '-'}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={vital.source === 'device' ? 'secondary' : 'outline'}>
-                            {vital.source}
-                          </Badge>
+                          {vital.phoneNumber || '-'}
                         </TableCell>
                         <TableCell>
                           {vital.heartRate ? (
@@ -390,13 +368,6 @@ export default function ReportsPage() {
                            (vital.bloodPressureSystolic && vital.bloodPressureDiastolic 
                             ? `${vital.bloodPressureSystolic}/${vital.bloodPressureDiastolic}` 
                             : '-')}
-                        </TableCell>
-                        <TableCell>
-                          {vital.stressLevel ? (
-                            <Badge variant={vital.stressLevel > 0.5 ? 'destructive' : 'secondary'}>
-                              {(vital.stressLevel * 100).toFixed(0)}%
-                            </Badge>
-                          ) : '-'}
                         </TableCell>
                         <TableCell>
                           {vital.hrvSdnn !== null && vital.hrvSdnn !== undefined ? `${vital.hrvSdnn.toFixed(1)}ms` : '-'}
@@ -426,6 +397,9 @@ export default function ReportsPage() {
                           <Badge variant={status.variant}>
                             {status.label}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {formatDate(vital.recordedAt)}
                         </TableCell>
                         <TableCell>
                           <Button
