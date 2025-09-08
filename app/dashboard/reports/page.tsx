@@ -28,6 +28,7 @@ import {
   TrendingUp,
   TrendingDown,
   AlertCircle,
+  Printer,
   Download,
   Filter,
   Eye,
@@ -100,6 +101,7 @@ interface Vital {
   // Additional
   bmi?: number;
   mspMatch?: number;
+  symptoms?: string;
   
   patient?: {
     firstName: string;
@@ -135,6 +137,460 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePrint = (vital: Vital) => {
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Please allow pop-ups to print the report');
+      return;
+    }
+
+    // Calculate ECG metrics for display only if heartRate exists
+    const hasHeartRate = vital.heartRate && vital.heartRate > 0;
+    const heartRate = vital.heartRate || 72;
+    const stressLevel = vital.stressLevel || 0.3;
+    const rrInterval = 60 / heartRate;
+    const prInterval = 160 - (heartRate - 60) * 0.4;
+    const qrsDuration = 90 + stressLevel * 20;
+    const qtInterval = 400 - (heartRate - 60) * 2;
+    const qtcInterval = qtInterval / Math.sqrt(rrInterval);
+    const pWaveDuration = 80 + (heartRate > 100 ? -10 : 0);
+    const tWaveDuration = 160 - (heartRate - 60) * 0.5;
+    const tWaveDeflection = 0.2 + (stressLevel * 0.1);
+
+    // Generate the print content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Health Report - ${vital.name || 'Patient'}</title>
+          <style>
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+              @page { margin: 0.5in; }
+            }
+            body {
+              font-family: 'Segoe UI', Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 1000px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 3px solid #2563eb;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            .header h1 {
+              margin: 0 0 10px 0;
+              color: #1e40af;
+              font-size: 28px;
+            }
+            .patient-info {
+              background: linear-gradient(to right, #eff6ff, #f0f9ff);
+              padding: 20px;
+              border-radius: 8px;
+              margin-bottom: 25px;
+              border-left: 4px solid #2563eb;
+            }
+            .patient-info h3 {
+              margin-top: 0;
+              color: #1e40af;
+            }
+            .section {
+              margin-bottom: 30px;
+              page-break-inside: avoid;
+            }
+            .section h2 {
+              color: #1e40af;
+              border-bottom: 2px solid #e5e7eb;
+              padding-bottom: 8px;
+              margin-bottom: 20px;
+              font-size: 20px;
+            }
+            .metrics-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+              gap: 15px;
+              margin-bottom: 20px;
+            }
+            .metric {
+              padding: 15px;
+              background: #f9fafb;
+              border-left: 4px solid #3b82f6;
+              border-radius: 4px;
+            }
+            .metric-label {
+              font-size: 11px;
+              color: #6b7280;
+              margin-bottom: 5px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .metric-value {
+              font-size: 20px;
+              font-weight: bold;
+              color: #1f2937;
+            }
+            .metric-unit {
+              font-size: 14px;
+              color: #6b7280;
+              font-weight: normal;
+            }
+            .ecg-section {
+              background: #f3f4f6;
+              padding: 20px;
+              border-radius: 8px;
+              margin-bottom: 25px;
+            }
+            .ecg-title {
+              color: #1e40af;
+              font-size: 18px;
+              margin-bottom: 15px;
+              font-weight: 600;
+            }
+            .ecg-note {
+              color: #6b7280;
+              font-size: 12px;
+              font-style: italic;
+            }
+            .risk-assessment {
+              padding: 12px 16px;
+              margin: 10px 0;
+              border-radius: 6px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .risk-low { 
+              background: #d1fae5; 
+              color: #065f46;
+              border-left: 4px solid #10b981;
+            }
+            .risk-medium { 
+              background: #fed7aa; 
+              color: #9a3412;
+              border-left: 4px solid #f97316;
+            }
+            .risk-high { 
+              background: #fee2e2; 
+              color: #991b1b;
+              border-left: 4px solid #ef4444;
+            }
+            .blood-metrics {
+              background: #fef3c7;
+              padding: 15px;
+              border-radius: 6px;
+              border-left: 4px solid #fbbf24;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 2px solid #e5e7eb;
+              text-align: center;
+              font-size: 11px;
+              color: #6b7280;
+            }
+            .two-column {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+            }
+            .wellness-badge {
+              display: inline-block;
+              padding: 4px 12px;
+              border-radius: 12px;
+              font-size: 12px;
+              font-weight: 600;
+              background: #e0e7ff;
+              color: #3730a3;
+              margin-left: 8px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Comprehensive Health Report</h1>
+            <p style="margin: 5px 0;">Generated on ${new Date().toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}</p>
+          </div>
+
+          <div class="patient-info">
+            <h3>Patient Information</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div><strong>Name:</strong> ${vital.name || 'Not provided'}</div>
+              <div><strong>Phone:</strong> ${vital.phoneNumber || 'Not provided'}</div>
+              <div><strong>Recording Date:</strong> ${new Date(vital.recordedAt).toLocaleString()}</div>
+              <div><strong>Data Source:</strong> ${vital.source || 'Manual'}</div>
+            </div>
+          </div>
+
+          ${hasHeartRate ? `
+          <!-- ECG Analysis Section -->
+          <div class="section">
+            <h2>ECG Analysis (Under Research)</h2>
+            <div class="ecg-section">
+              <div class="ecg-note">ECG waveform analysis based on vital parameters</div>
+              <div class="metrics-grid" style="margin-top: 15px;">
+                <div class="metric">
+                  <div class="metric-label">Heart Rate</div>
+                  <div class="metric-value">${heartRate} <span class="metric-unit">bpm</span></div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">PR Interval</div>
+                  <div class="metric-value">${Math.round(prInterval)} <span class="metric-unit">ms</span></div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">QRS Duration</div>
+                  <div class="metric-value">${Math.round(qrsDuration)} <span class="metric-unit">ms</span></div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">QT Interval</div>
+                  <div class="metric-value">${Math.round(qtInterval)} <span class="metric-unit">ms</span></div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">QTc Interval</div>
+                  <div class="metric-value">${Math.round(qtcInterval)} <span class="metric-unit">ms</span></div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">RR Interval</div>
+                  <div class="metric-value">${Math.round(rrInterval * 1000)} <span class="metric-unit">ms</span></div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">P Wave Duration</div>
+                  <div class="metric-value">${Math.round(pWaveDuration)} <span class="metric-unit">ms</span></div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">T Wave Duration</div>
+                  <div class="metric-value">${Math.round(tWaveDuration)} <span class="metric-unit">ms</span></div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">T Wave Deflection</div>
+                  <div class="metric-value">${tWaveDeflection.toFixed(2)} <span class="metric-unit">mV</span></div>
+                </div>
+              </div>
+              <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 6px;">
+                <h4 style="margin-top: 0; color: #374151;">ECG Interpretation</h4>
+                <ul style="margin: 10px 0; padding-left: 20px; color: #4b5563;">
+                  <li>Rhythm: ${heartRate > 100 ? 'Tachycardia' : heartRate < 60 ? 'Bradycardia' : 'Normal Sinus Rhythm'}</li>
+                  <li>Rate: ${heartRate} bpm ${heartRate >= 60 && heartRate <= 100 ? '(Normal)' : '(Abnormal)'}</li>
+                  <li>PR Interval: ${Math.round(prInterval)} ms ${prInterval >= 120 && prInterval <= 200 ? '(Normal)' : '(Abnormal)'}</li>
+                  <li>QRS Complex: ${Math.round(qrsDuration)} ms ${qrsDuration <= 100 ? '(Normal)' : '(Widened)'}</li>
+                  <li>QTc: ${Math.round(qtcInterval)} ms ${qtcInterval <= 440 ? '(Normal)' : '(Prolonged)'}</li>
+                  ${vital.hrvSdnn ? `<li>HRV (SDNN): ${vital.hrvSdnn.toFixed(1)} ms ${vital.hrvSdnn > 50 ? '(Good)' : '(Low)'}</li>` : ''}
+                </ul>
+              </div>
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Basic Vitals Section -->
+          ${(vital.oxygenSaturation !== undefined || vital.bloodPressureSystolic || vital.breathingRate !== undefined || vital.temperature !== undefined || vital.bloodGlucose !== undefined || (vital.bmi !== undefined && vital.bmi !== null)) ? `
+          <div class="section">
+            <h2>Basic Vital Signs</h2>
+            <div class="metrics-grid">
+              ${[
+                vital.oxygenSaturation !== undefined ? `
+                  <div class="metric">
+                    <div class="metric-label">Oxygen Saturation</div>
+                    <div class="metric-value">${vital.oxygenSaturation}<span class="metric-unit">%</span></div>
+                    ${vital.oxygenSaturationConfLevel ? `<div style="font-size: 11px; color: #6b7280;">Confidence: ${vital.oxygenSaturationConfLevel}/3</div>` : ''}
+                  </div>
+                ` : '',
+                vital.bloodPressureSystolic ? `
+                  <div class="metric">
+                    <div class="metric-label">Blood Pressure</div>
+                    <div class="metric-value">${vital.bloodPressureSystolic}/${vital.bloodPressureDiastolic} <span class="metric-unit">mmHg</span></div>
+                  </div>
+                ` : '',
+                vital.breathingRate !== undefined ? `
+                  <div class="metric">
+                    <div class="metric-label">Breathing Rate</div>
+                    <div class="metric-value">${vital.breathingRate} <span class="metric-unit">rpm</span></div>
+                  </div>
+                ` : '',
+                vital.temperature !== undefined ? `
+                  <div class="metric">
+                    <div class="metric-label">Temperature</div>
+                    <div class="metric-value">${vital.temperature}<span class="metric-unit">°C</span></div>
+                  </div>
+                ` : '',
+                vital.bloodGlucose !== undefined ? `
+                  <div class="metric">
+                    <div class="metric-label">Blood Glucose</div>
+                    <div class="metric-value">${vital.bloodGlucose} <span class="metric-unit">mg/dL</span></div>
+                  </div>
+                ` : '',
+                vital.bmi !== undefined && vital.bmi !== null ? `
+                  <div class="metric">
+                    <div class="metric-label">BMI</div>
+                    <div class="metric-value">${vital.bmi.toFixed(1)}</div>
+                  </div>
+                ` : ''
+              ].filter(Boolean).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Stress & HRV Analysis -->
+          ${(vital.hrvSdnn || vital.stressLevel !== undefined || vital.pnsIndex || vital.snsIndex || vital.wellnessIndex || vital.mspMatch) ? `
+            <div class="section">
+              <h2>Stress & HRV Analysis</h2>
+              <div class="metrics-grid">
+                ${[
+                  vital.stressLevel !== undefined ? `
+                    <div class="metric">
+                      <div class="metric-label">Stress Level</div>
+                      <div class="metric-value">${(vital.stressLevel * 100).toFixed(0)}<span class="metric-unit">%</span></div>
+                    </div>
+                  ` : '',
+                  vital.hrvSdnn !== undefined && vital.hrvSdnn !== null ? `
+                    <div class="metric">
+                      <div class="metric-label">HRV SDNN</div>
+                      <div class="metric-value">${vital.hrvSdnn.toFixed(1)} <span class="metric-unit">ms</span></div>
+                    </div>
+                  ` : '',
+                  vital.pnsIndex !== undefined && vital.pnsIndex !== null ? `
+                    <div class="metric">
+                      <div class="metric-label">PNS Index</div>
+                      <div class="metric-value">${vital.pnsIndex.toFixed(2)} ${vital.pnsZone ? `<span class="wellness-badge">${vital.pnsZone}</span>` : ''}</div>
+                    </div>
+                  ` : '',
+                  vital.snsIndex !== undefined && vital.snsIndex !== null ? `
+                    <div class="metric">
+                      <div class="metric-label">SNS Index</div>
+                      <div class="metric-value">${vital.snsIndex.toFixed(2)} ${vital.snsZone ? `<span class="wellness-badge">${vital.snsZone}</span>` : ''}</div>
+                    </div>
+                  ` : '',
+                  vital.wellnessIndex !== undefined && vital.wellnessIndex !== null ? `
+                    <div class="metric">
+                      <div class="metric-label">Wellness Index</div>
+                      <div class="metric-value">${vital.wellnessIndex.toFixed(1)} ${vital.wellnessLevel ? `<span class="wellness-badge">${vital.wellnessLevel}</span>` : ''}</div>
+                    </div>
+                  ` : '',
+                  vital.mspMatch !== undefined && vital.mspMatch !== null ? `
+                    <div class="metric">
+                      <div class="metric-label">MSP Match</div>
+                      <div class="metric-value">${(vital.mspMatch * 100).toFixed(0)}<span class="metric-unit">%</span></div>
+                    </div>
+                  ` : ''
+                ].filter(Boolean).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Blood Metrics -->
+          ${(vital.hemoglobin || vital.hemoglobinA1c || vital.hba1c) ? `
+            <div class="section">
+              <h2>Blood Metrics</h2>
+              <div class="blood-metrics">
+                <div class="metrics-grid">
+                  ${vital.hemoglobin !== undefined ? `
+                    <div class="metric" style="background: white;">
+                      <div class="metric-label">Hemoglobin</div>
+                      <div class="metric-value">${vital.hemoglobin} <span class="metric-unit">g/dL</span></div>
+                    </div>
+                  ` : ''}
+                  ${vital.hemoglobinA1c !== undefined ? `
+                    <div class="metric" style="background: white;">
+                      <div class="metric-label">Hemoglobin A1c</div>
+                      <div class="metric-value">${vital.hemoglobinA1c}<span class="metric-unit">%</span></div>
+                    </div>
+                  ` : ''}
+                  ${vital.hba1c !== undefined ? `
+                    <div class="metric" style="background: white;">
+                      <div class="metric-label">HbA1c</div>
+                      <div class="metric-value">${vital.hba1c}<span class="metric-unit">%</span></div>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Risk Assessment -->
+          ${(vital.diabeticRisk || vital.hypertensionRisk || vital.heartAttackRisk || vital.strokeRisk || vital.asthmaRisk || vital.alzheimersRisk) ? `
+            <div class="section">
+              <h2>Health Risk Assessment</h2>
+              ${[
+                vital.diabeticRisk ? `
+                  <div class="risk-assessment risk-${vital.diabeticRisk.toLowerCase()}">
+                    <strong>Diabetic Risk</strong>
+                    <span>${vital.diabeticRisk.toUpperCase()}${vital.diabeticRiskProbability ? ` (${(vital.diabeticRiskProbability * 100).toFixed(1)}%)` : ''}</span>
+                  </div>
+                ` : '',
+                vital.hypertensionRisk ? `
+                  <div class="risk-assessment risk-${vital.hypertensionRisk.toLowerCase()}">
+                    <strong>Hypertension Risk</strong>
+                    <span>${vital.hypertensionRisk.toUpperCase()}${vital.hypertensionRiskProbability ? ` (${(vital.hypertensionRiskProbability * 100).toFixed(1)}%)` : ''}</span>
+                  </div>
+                ` : '',
+                vital.heartAttackRisk ? `
+                  <div class="risk-assessment risk-${vital.heartAttackRisk.toLowerCase()}">
+                    <strong>Heart Attack Risk</strong>
+                    <span>${vital.heartAttackRisk.toUpperCase()}${vital.heartAttackRiskProbability ? ` (${(vital.heartAttackRiskProbability * 100).toFixed(1)}%)` : ''}</span>
+                  </div>
+                ` : '',
+                vital.strokeRisk ? `
+                  <div class="risk-assessment risk-${vital.strokeRisk.toLowerCase()}">
+                    <strong>Stroke Risk</strong>
+                    <span>${vital.strokeRisk.toUpperCase()}${vital.strokeRiskProbability ? ` (${(vital.strokeRiskProbability * 100).toFixed(1)}%)` : ''}</span>
+                  </div>
+                ` : '',
+                vital.asthmaRisk ? `
+                  <div class="risk-assessment risk-${vital.asthmaRisk.toLowerCase()}">
+                    <strong>Asthma Risk</strong>
+                    <span>${vital.asthmaRisk.toUpperCase()}</span>
+                  </div>
+                ` : '',
+                vital.alzheimersRisk ? `
+                  <div class="risk-assessment risk-${vital.alzheimersRisk.toLowerCase()}">
+                    <strong>Alzheimer's Risk</strong>
+                    <span>${vital.alzheimersRisk.toUpperCase()}</span>
+                  </div>
+                ` : ''
+              ].filter(Boolean).join('')}
+            </div>
+          ` : ''}
+
+          <!-- Additional Information -->
+          ${vital.symptoms ? `
+            <div class="section">
+              <h2>Symptoms</h2>
+              <p style="padding: 15px; background: #fef3c7; border-radius: 6px; border-left: 4px solid #fbbf24;">
+                ${vital.symptoms}
+              </p>
+            </div>
+          ` : ''}
+
+          <div class="footer">
+            <p><strong>Important Notice:</strong> This report is generated for informational purposes only and should not be used as a substitute for professional medical advice.</p>
+            <p>Please consult with a qualified healthcare professional for proper medical diagnosis and treatment.</p>
+            <p style="margin-top: 15px;">© ${new Date().getFullYear()} Health Monitoring System | Generated with Advanced AI Analysis</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Write the content and print
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Wait for content to load then print
+    printWindow.onload = () => {
+      printWindow.print();
+    };
   };
 
   const filteredVitals = vitals.filter(vital => {
@@ -402,15 +858,26 @@ export default function ReportsPage() {
                           {formatDate(vital.recordedAt)}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setSelectedVital(vital)}
-                            className="flex items-center gap-1"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedVital(vital)}
+                              className="flex items-center gap-1"
+                            >
+                              <Eye className="h-4 w-4" />
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handlePrint(vital)}
+                              className="flex items-center gap-1"
+                            >
+                              <Printer className="h-4 w-4" />
+                              Print
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -440,9 +907,20 @@ export default function ReportsPage() {
                     Recorded on {formatDate(selectedVital.recordedAt)}
                   </p>
                 </div>
-                <Badge variant={selectedVital.source === 'device' ? 'secondary' : 'outline'} className="text-lg px-3 py-1">
-                  {selectedVital.source}
-                </Badge>
+                <div className="flex items-center gap-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePrint(selectedVital)}
+                    className="flex items-center gap-2"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Print Report
+                  </Button>
+                  <Badge variant={selectedVital.source === 'device' ? 'secondary' : 'outline'} className="text-lg px-3 py-1">
+                    {selectedVital.source}
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">

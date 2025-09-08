@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ import {
   Heart,
   Bell,
   TrendingUp,
+  TrendingDown,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -40,8 +41,42 @@ const menuItems = [
 
 export function Sidebar({ className }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [healthScore, setHealthScore] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const pathname = usePathname();
   const { logout } = useAuth();
+
+  useEffect(() => {
+    fetchHealthScore();
+  }, []);
+
+  const fetchHealthScore = async () => {
+    try {
+      const response = await fetch('/api/analytics');
+      if (response.ok) {
+        const data = await response.json();
+        setHealthScore(data.analytics?.healthScore || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching health score:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getHealthScoreLabel = () => {
+    if (healthScore >= 80) return 'Excellent';
+    if (healthScore >= 60) return 'Good';
+    if (healthScore >= 40) return 'Fair';
+    return 'Needs Attention';
+  };
+
+  const getHealthScoreColor = () => {
+    if (healthScore >= 80) return 'from-green-500 to-emerald-500';
+    if (healthScore >= 60) return 'from-blue-600 to-purple-600';
+    if (healthScore >= 40) return 'from-yellow-500 to-orange-500';
+    return 'from-red-500 to-pink-500';
+  };
 
   return (
     <aside
@@ -82,13 +117,23 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Quick Stats (visible when not collapsed) */}
       {!collapsed && (
-        <div className="mx-4 mt-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white">
+        <div className={`mx-4 mt-4 rounded-xl bg-gradient-to-r ${getHealthScoreColor()} p-4 text-white`}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm opacity-90">Health Score</span>
-            <TrendingUp className="h-4 w-4" />
+            {healthScore > 50 ? (
+              <TrendingUp className="h-4 w-4" />
+            ) : (
+              <TrendingDown className="h-4 w-4" />
+            )}
           </div>
-          <div className="text-2xl font-bold">92%</div>
-          <div className="text-xs opacity-75 mt-1">Great condition</div>
+          <div className="text-2xl font-bold">
+            {isLoading ? (
+              <span className="animate-pulse">--</span>
+            ) : (
+              `${healthScore}%`
+            )}
+          </div>
+          <div className="text-xs opacity-75 mt-1">{getHealthScoreLabel()}</div>
         </div>
       )}
 
