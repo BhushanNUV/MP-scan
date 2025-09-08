@@ -121,6 +121,10 @@ model Vitals {
   source              String    @default("manual") // manual, device, import
   faceScanId          String?   // Link to face scan if available
   
+  // User Info fields
+  name                String?   // User's name
+  phoneNumber         String?   // User's phone number
+  
   // Basic Vitals - Updated fields
   heartRate              Int?      // beats per minute
   prq                    Float?    // Pulse Rate Quality

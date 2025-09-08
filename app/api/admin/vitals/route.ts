@@ -7,44 +7,28 @@ export async function GET() {
   if (authError) return authError;
 
   try {
+    // Direct fetch from vitals table without any relations
     const vitals = await prisma.vitals.findMany({
-      select: {
-        id: true,
-        recordedAt: true,
-        source: true,
-        bloodPressureSystolic: true,
-        bloodPressureDiastolic: true,
-        heartRate: true,
-        temperature: true,
-        oxygenSaturation: true,
-        bloodGlucose: true,
-        userId: true,
-        patient: {
-          select: {
-            firstName: true,
-            lastName: true,
-            user: {
-              select: {
-                email: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
       orderBy: { recordedAt: 'desc' },
-      take: 50,
+      take: 200, // Get more records
     });
 
+    // Format dates for JSON serialization
     const formattedVitals = vitals.map(vital => ({
       ...vital,
-      user: vital.patient?.user,
+      recordedAt: vital.recordedAt.toISOString(),
+      // Add placeholder user/patient info since we're not using relations
+      user: {
+        email: vital.userId || 'Unknown User',
+        name: `User ${vital.userId || 'N/A'}`,
+      },
       patient: {
-        firstName: vital.patient?.firstName,
-        lastName: vital.patient?.lastName,
+        firstName: 'Patient',
+        lastName: vital.patientId || 'N/A',
       },
     }));
 
+    console.log(`Fetched ${formattedVitals.length} vitals records directly`);
     return NextResponse.json({ vitals: formattedVitals });
   } catch (error) {
     console.error('Error fetching vitals:', error);

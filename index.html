@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Face Scan ECG Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+            align-items: start;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        /* Reports Panel */
+        .reports-list {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .report-item {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        .report-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .report-item.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea10, #764ba210);
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .report-id {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .report-date {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .report-vitals {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .vital-chip {
+            background: #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .vital-chip.heart-rate { background: #fecaca; color: #dc2626; }
+        .vital-chip.breathing { background: #bfdbfe; color: #2563eb; }
+        .vital-chip.stress { background: #d1fae5; color: #059669; }
+        .vital-chip.stress.normal { background: #fef3c7; color: #d97706; }
+        .vital-chip.stress.high { background: #fecaca; color: #dc2626; }
+
+        /* ECG Controls */
+        .ecg-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .form-select, .form-input {
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            background: white;
+        }
+
+        .form-select:focus, .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #4b5563;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* ECG Display */
+        .ecg-display {
+            background: #1a2e1a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ecg-canvas-container {
+            position: relative;
+            height: 400px;
+            background: #1a2e1a;
+        }
+
+        #ecgChart {
+            background: #1a2e1a !important;
+        }
+
+        /* Report Details */
+        .report-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .detail-section {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .detail-section h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #64748b;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        /* ECG Metrics */
+        .ecg-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #d1d5db;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        /* ECG Intervals Specific Styling */
+        .ecg-interval-card {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe) !important;
+            border: 2px solid #0ea5e9 !important;
+        }
+
+        .intervals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .interval-item {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        .interval-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .interval-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+
+        .interval-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #0ea5e9;
+            margin-bottom: 3px;
+        }
+
+        .interval-normal {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        /* Enhanced metric cards for better visual hierarchy */
+        .metric-card.ecg-interval-card .metric-label {
+            text-align: left;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Loading and Status */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .loading::before {
+            content: '';
+            width: 30px;
+            height: 30px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .status-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+
+        /* Medical Disclaimer */
+        .disclaimer {
+            background: #fef2f2;
+            border: 2px solid #fecaca;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+            color: #991b1b;
+            text-align: center;
+        }
+
+        .disclaimer strong {
+            display: block;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        /* Lead Info Display */
+        .lead-info {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .lead-info .lead-name {
+            font-weight: bold;
+            color: #0c4a6e;
+        }
+
+        .lead-info .lead-desc {
+            color: #075985;
+            margin-top: 4px;
+        }
+
+        /* Export Status */
+        .export-status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .reports-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .reports-list::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+
+        .reports-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .reports-list::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .ecg-controls {
+                grid-template-columns: 1fr;
+            }
+
+            .report-details {
+                grid-template-columns: 1fr;
+            }
+
+            .ecg-metrics {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .intervals-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .interval-item {
+                padding: 10px;
+            }
+            
+            .interval-label {
+                font-size: 0.8rem;
+            }
+            
+            .interval-value {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .intervals-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1> Face Scan ECG Generator</h1>
+            <p>Generate industry-grade ECG simulations from facial scan reports</p>
+        </div>
+
+        <div class="main-grid">
+            <!-- Left Panel: Reports List -->
+            <div class="card">
+                <div class="card-header">
+                     Available Reports
+                </div>
+                <div class="card-body">
+                    <div id="reportsContainer">
+                        <div class="loading">Loading reports...</div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadReports()" style="width: 100%;">
+                         Refresh Reports
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel: ECG Generator -->
+            <div class="card">
+                <div class="card-header">
+                     ECG Generator & Analysis
+                </div>
+                <div class="card-body">
+                    <div id="statusMessage"></div>
+
+                    <!-- ECG Controls -->
+                    <div class="ecg-controls">
+                        <div class="control-group">
+                            <label for="leadSelect">ECG Lead:</label>
+                            <select id="leadSelect" class="form-select">
+                                <option value="Lead I">Lead I - Limb Lead</option>
+                                <option value="Lead II" selected>Lead II - Standard</option>
+                                <option value="Lead III">Lead III - Limb Lead</option>
+                                <option value="aVR">aVR - Augmented</option>
+                                <option value="aVL">aVL - Augmented</option>
+                                <option value="aVF">aVF - Augmented</option>
+                                <option value="V1">V1 - Precordial</option>
+                                <option value="V2">V2 - Precordial</option>
+                                <option value="V3">V3 - Precordial</option>
+                                <option value="V4">V4 - Precordial</option>
+                                <option value="V5">V5 - Precordial</option>
+                                <option value="V6">V6 - Precordial</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="durationInput">Duration (seconds):</label>
+                            <input type="number" id="durationInput" class="form-input" value="10" min="5" max="60">
+                        </div>
+
+                        <div class="control-group">
+                            <label>&nbsp;</label>
+                            <button id="generateBtn" class="btn btn-primary" onclick="generateECG()">
+                                 Generate ECG
+                            </button>
+                        </div>
+
+                        <div class="control-group">
+                            <label>&nbsp;</label>
+                            <button id="exportBtn" class="btn btn-secondary" onclick="exportECG()" disabled>
+                                 Export CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lead Information -->
+                    <div id="leadInfo" class="lead-info" style="display: none;">
+                        <div class="lead-name"></div>
+                        <div class="lead-desc"></div>
+                    </div>
+
+                    <!-- ECG Display -->
+                    <div class="ecg-display">
+                        <div class="ecg-canvas-container">
+                            <canvas id="ecgChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- ECG Metrics -->
+                    <div id="ecgMetrics" class="ecg-metrics" style="display: none;"></div>
+
+                    <!-- Report Details -->
+                    <div id="reportDetails" style="display: none;">
+                        <h3 style="margin-bottom: 20px; color: #667eea;"> Report Analysis</h3>
+                        <div class="report-details"></div>
+                    </div>
+
+                    <!-- Export Status -->
+                    <div id="exportStatus" class="export-status" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medical Disclaimer -->
+        <div class="disclaimer">
+            <strong> Medical Disclaimer</strong>
+            This ECG generator creates simulations from facial scan data for educational and research purposes only. 
+            The generated ECGs are not diagnostic quality and should never be used for medical diagnosis, treatment 
+            decisions, or patient care. Always consult qualified healthcare professionals for proper cardiac assessment 
+            and medical advice.
+        </div>
+    </div>
+
+    <script>
+        let selectedReport = null;
+        let currentECGData = null;
+        let ecgChart = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            loadReports();
+            initializeChart();
+        });
+
+        // Load available reports from server
+        async function loadReports() {
+            try {
+                const response = await fetch('/api/reports');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayReports(data.reports);
+                } else {
+                    showStatus('error', 'Failed to load reports: ' + data.error);
+                }
+            } catch (error) {
+                showStatus('error', 'Network error: ' + error.message);
+            }
+        }
+
+        // Display reports in the list
+        function displayReports(reports) {
+            const container = document.getElementById('reportsContainer');
+            
+            if (reports.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #64748b;">
+                        <div style="font-size: 48px; margin-bottom: 15px;"></div>
+                        <p>No reports found</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">
+                            Place JSON report files in the 'reports' folder
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            const reportsHtml = reports.map(report => `
+                <div class="report-item" onclick="selectReport('${report.filename}')" id="report-${report.filename}">
+                    <div class="report-header">
+                        <div class="report-id">ID: ${report.id}</div>
+                        <div class="report-date">${report.created_date}</div>
+                    </div>
+                    <div class="report-vitals">
+                        <div class="vital-chip heart-rate"> ${report.heart_rate} bpm</div>
+                        <div class="vital-chip breathing"> ${report.breathing_rate} brpm</div>
+                        <div class="vital-chip stress ${report.stress_level.toLowerCase()}">
+                             ${report.stress_level}
+                        </div>
+                        <div class="vital-chip"> ${report.wellness_score}/10</div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 8px;">
+                        ${report.result_time} • ${(report.file_size / 1024).toFixed(1)} KB
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="reports-list">${reportsHtml}</div>
+            `;
+        }
+
+        // Select a report
+        async function selectReport(filename) {
+            // Update UI selection
+            document.querySelectorAll('.report-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            document.getElementById(`report-${filename}`).classList.add('selected');
+            
+            selectedReport = filename;
+            
+            // Load detailed report data
+            try {
+                const response = await fetch(`/api/report_details/${filename}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayReportDetails(data.report);
+                    document.getElementById('generateBtn').disabled = false;
+                    showStatus('info', `Report "${filename}" selected. Ready to generate ECG.`);
+                } else {
+                    showStatus('error', 'Failed to load report details: ' + data.error);
+                }
+            } catch (error) {
+                showStatus('error', 'Error loading report: ' + error.message);
+            }
+        }
+
+        // Display detailed report information
+        function displayReportDetails(report) {
+            const container = document.getElementById('reportDetails');
+            const detailsContainer = container.querySelector('.report-details');
+            
+            detailsContainer.innerHTML = `
+                <!-- Basic Info -->
+                <div class="detail-section">
+                    <h4> Basic Information</h4>
+                    <div class="detail-item">
+                        <span class="detail-label">Report ID:</span>
+                        <span class="detail-value">${report.basic_info.id}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Scan Method:</span>
+                        <span class="detail-value">${report.basic_info.scan_by}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Created:</span>
+                        <span class="detail-value">${report.basic_info.created_date}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Time:</span>
+                        <span class="detail-value">${report.basic_info.result_time}</span>
+                    </div>
+                </div>
+
+                <!-- Vital Signs -->
+                <div class="detail-section">
+                    <h4> Vital Signs</h4>
+                    <div class="detail-item">
+                        <span class="detail-label">Heart Rate:</span>
+                        <span class="detail-value">${report.vital_signs.heart_rate} bpm</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Breathing Rate:</span>
+                        <span class="detail-value">${report.vital_signs.breathing_rate} brpm</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Blood Pressure:</span>
+                        <span class="detail-value">${report.vital_signs.blood_pressure}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">O2 Saturation:</span>
+                        <span class="detail-value">${report.vital_signs.oxygen_saturation}%</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Heart Age:</span>
+                        <span class="detail-value">${report.vital_signs.heart_age} years</span>
+                    </div>
+                </div>
+
+                <!-- HRV Analysis -->
+                <div class="detail-section">
+                    <h4> HRV Analysis</h4>
+                    <div class="detail-item">
+                        <span class="detail-label">HRV-SDNN:</span>
+                        <span class="detail-value">${report.hrv_analysis.hrv_sdnn} ms</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Mean RRi:</span>
+                        <span class="detail-value">${report.hrv_analysis.mean_rri} ms</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">RMSSD:</span>
+                        <span class="detail-value">${report.hrv_analysis.rmssd} ms</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">PNS Index:</span>
+                        <span class="detail-value">${report.hrv_analysis.pns_index}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">LF/HF Ratio:</span>
+                        <span class="detail-value">${report.hrv_analysis.lf_hf}</span>
+                    </div>
+                </div>
+
+                <!-- Health Metrics -->
+                <div class="detail-section">
+                    <h4> Health Assessment</h4>
+                    <div class="detail-item">
+                        <span class="detail-label">Wellness Score:</span>
+                        <span class="detail-value">${report.health_metrics.wellness_score}/10</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Stress Level:</span>
+                        <span class="detail-value">${report.health_metrics.stress_level}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Recovery Ability:</span>
+                        <span class="detail-value">${report.health_metrics.recovery_ability}</span>
+                    </div>
+                </div>
+            `;
+            
+            container.style.display = 'block';
+        }
+
+        // Initialize ECG Chart
+        function initializeChart() {
+            const ctx = document.getElementById('ecgChart').getContext('2d');
+            
+            ecgChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'ECG Signal',
+                        data: [],
+                        borderColor: '#22c55e',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time (seconds)',
+                                color: '#4ade80'
+                            },
+                            grid: {
+                                color: '#4ade80',
+                                lineWidth: 0.5
+                            },
+                            ticks: {
+                                color: '#4ade80'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Amplitude (mV)',
+                                color: '#4ade80'
+                            },
+                            grid: {
+                                color: '#4ade80',
+                                lineWidth: 0.5
+                            },
+                            ticks: {
+                                color: '#4ade80'
+                            },
+                            min: -2,
+                            max: 3
+                        }
+                    },
+                    elements: {
+                        point: {
+                            radius: 0
+                        }
+                    }
+                }
+            });
+        }
+
+        // Generate ECG from selected report
+        async function generateECG() {
+            if (!selectedReport) {
+                showStatus('error', 'Please select a report first');
+                return;
+            }
+
+            const generateBtn = document.getElementById('generateBtn');
+            const originalText = generateBtn.innerHTML;
+            
+            try {
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = ' Generating...';
+                
+                const lead = document.getElementById('leadSelect').value;
+                const duration = parseInt(document.getElementById('durationInput').value);
+                
+                // Update lead info display
+                updateLeadInfo(lead);
+                
+                const response = await fetch('/api/generate_ecg', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filename: selectedReport,
+                        lead: lead,
+                        duration: duration
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentECGData = data.ecg_data;
+                    displayECG(data.ecg_data);
+                    displayECGMetrics(data.metrics, data.report_summary);
+                    
+                    document.getElementById('exportBtn').disabled = false;
+                    showStatus('success', `ECG generated successfully! ${data.ecg_data.length} samples created for ${lead}`);
+                } else {
+                    showStatus('error', 'ECG generation failed: ' + data.error);
+                }
+                
+            } catch (error) {
+                showStatus('error', 'Network error: ' + error.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = originalText;
+            }
+        }
+
+        // Update lead information display
+        function updateLeadInfo(lead) {
+            const leadInfo = document.getElementById('leadInfo');
+            const leadData = {
+                'Lead I': 'Left arm - Right arm',
+                'Lead II': 'Left leg - Right arm (Standard)',
+                'Lead III': 'Left leg - Left arm',
+                'aVR': 'Augmented Right arm',
+                'aVL': 'Augmented Left arm', 
+                'aVF': 'Augmented Left leg',
+                'V1': 'Right sternal border (4th intercostal)',
+                'V2': 'Left sternal border (4th intercostal)',
+                'V3': 'Between V2 and V4',
+                'V4': 'Left midclavicular line (5th intercostal)',
+                'V5': 'Left anterior axillary line (5th intercostal)',
+                'V6': 'Left midaxillary line (5th intercostal)'
+            };
+            
+            leadInfo.querySelector('.lead-name').textContent = lead;
+            leadInfo.querySelector('.lead-desc').textContent = leadData[lead] || '';
+            leadInfo.style.display = 'block';
+        }
+
+        // Display ECG on chart
+        function displayECG(ecgData) {
+            const times = ecgData.map(point => point.time);
+            const amplitudes = ecgData.map(point => point.amplitude);
+            
+            ecgChart.data.labels = times;
+            ecgChart.data.datasets[0].data = amplitudes;
+            ecgChart.update();
+        }
+
+        // Enhanced display ECG metrics with intervals
+        function displayECGMetrics(metrics, reportSummary) {
+            const container = document.getElementById('ecgMetrics');
+            
+            container.innerHTML = `
+                <!-- Basic Metrics -->
+                <div class="metric-card">
+                    <div class="metric-label">R Peaks Detected</div>
+                    <div class="metric-value">${metrics.r_peaks_detected}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Signal Quality</div>
+                    <div class="metric-value">${metrics.signal_quality}</div>
+                </div>
+                
+                <!-- Heart Rate Analysis -->
+                <div class="metric-card">
+                    <div class="metric-label">Calculated HR</div>
+                    <div class="metric-value">${metrics.calculated_heart_rate} bpm</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Original HR</div>
+                    <div class="metric-value">${reportSummary.heart_rate} bpm</div>
+                </div>
+                
+                <!-- ECG Intervals Section -->
+                <div class="metric-card ecg-interval-card" style="grid-column: 1 / -1;">
+                    <div class="metric-label" style="font-size: 1.1rem; margin-bottom: 15px; color: #667eea;">
+                         ECG Interval Measurements
+                    </div>
+                    <div class="intervals-grid">
+                        <div class="interval-item">
+                            <div class="interval-label">P Wave Duration</div>
+                            <div class="interval-value">${metrics.p_wave_duration || 0} ms</div>
+                            <div class="interval-normal">Normal: 80-120 ms</div>
+                        </div>
+                        <div class="interval-item">
+                            <div class="interval-label">PR Interval</div>
+                            <div class="interval-value">${metrics.pr_interval || 0} ms</div>
+                            <div class="interval-normal">Normal: 120-200 ms</div>
+                        </div>
+                        <div class="interval-item">
+                            <div class="interval-label">QRS Duration</div>
+                            <div class="interval-value">${metrics.qrs_duration || 0} ms</div>
+                            <div class="interval-normal">Normal: 80-120 ms</div>
+                        </div>
+                        <div class="interval-item">
+                            <div class="interval-label">QT Interval</div>
+                            <div class="interval-value">${metrics.qt_interval || 0} ms</div>
+                            <div class="interval-normal">Normal: 350-450 ms</div>
+                        </div>
+                        <div class="interval-item">
+                            <div class="interval-label">QTc Interval</div>
+                            <div class="interval-value">${metrics.qtc_interval || 0} ms</div>
+                            <div class="interval-normal">Normal: <450 ms</div>
+                        </div>
+                        <div class="interval-item">
+                            <div class="interval-label">T Wave Deflection</div>
+                            <div class="interval-value">${metrics.t_wave_deflection || 0} mV</div>
+                            <div class="interval-normal">Normal: 0.1-0.5 mV</div>
+                        </div>
+                        <div class="interval-item">
+                            <div class="interval-label">T Wave Duration</div>
+                            <div class="interval-value">${metrics.t_wave_duration || 0} ms</div>
+                            <div class="interval-normal">Normal: 120-160 ms</div>
+                        </div>
+                        <div class="interval-item">
+                            <div class="interval-label">Intervals Measured</div>
+                            <div class="interval-value">${metrics.intervals_measured || 0}</div>
+                            <div class="interval-normal">Beats analyzed</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Metrics -->
+                <div class="metric-card">
+                    <div class="metric-label">Avg RR Interval</div>
+                    <div class="metric-value">${metrics.avg_rr_interval} ms</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Max Amplitude</div>
+                    <div class="metric-value">${metrics.max_amplitude} mV</div>
+                </div>
+                
+            `;
+            
+            container.style.display = 'grid';
+        }
+
+        // Export ECG data to CSV
+        async function exportECG() {
+            if (!currentECGData) {
+                showStatus('error', 'No ECG data to export');
+                return;
+            }
+
+            const exportBtn = document.getElementById('exportBtn');
+            const originalText = exportBtn.innerHTML;
+            
+            try {
+                exportBtn.disabled = true;
+                exportBtn.innerHTML = '💾 Exporting...';
+                
+                const lead = document.getElementById('leadSelect').value;
+                const filename = selectedReport.replace('.json', '');
+                
+                const response = await fetch('/api/export_ecg', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        ecg_data: currentECGData,
+                        filename: filename,
+                        lead: lead.replace(' ', '_')
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Create download link
+                    const downloadResponse = await fetch(`/api/download_csv/${data.filename}`);
+                    if (downloadResponse.ok) {
+                        const blob = await downloadResponse.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = data.filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                        
+                        const exportStatus = document.getElementById('exportStatus');
+                        exportStatus.className = 'export-status status-success';
+                        exportStatus.innerHTML = `✅ ECG data exported successfully!<br>
+                                                File: ${data.filename}<br>
+                                                Rows: ${data.rows} (including header)`;
+                        exportStatus.style.display = 'block';
+                        
+                        setTimeout(() => {
+                            exportStatus.style.display = 'none';
+                        }, 5000);
+                    } else {
+                        throw new Error('Download failed');
+                    }
+                } else {
+                    showStatus('error', 'Export failed: ' + data.error);
+                }
+                
+            } catch (error) {
+                showStatus('error', 'Export error: ' + error.message);
+            } finally {
+                exportBtn.disabled = false;
+                exportBtn.innerHTML = originalText;
+            }
+        }
+
+        // Show status message
+        function showStatus(type, message) {
+            const container = document.getElementById('statusMessage');
+            container.className = `status-message status-${type}`;
+            
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            container.innerHTML = `${icon} ${message}`;
+            container.style.display = 'block';
+            
+            // Auto-hide after 5 seconds for success/info messages
+            if (type !== 'error') {
+                setTimeout(() => {
+                    container.style.display = 'none';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>

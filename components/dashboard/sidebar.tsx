@@ -7,17 +7,11 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Home,
-  Activity,
-  PlusCircle,
   FileText,
-  User,
-  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
   Heart,
-  BarChart3,
-  Calendar,
   Bell,
   TrendingUp,
 } from 'lucide-react';
@@ -35,51 +29,14 @@ const menuItems = [
     gradient: 'from-blue-500 to-cyan-500',
   },
   {
-    title: 'Health Vitals',
-    icon: Activity,
-    href: '/dashboard/vitals',
-    gradient: 'from-green-500 to-emerald-500',
-  },
-  {
-    title: 'Add New Scan',
-    icon: PlusCircle,
-    href: '/dashboard/scan',
-    gradient: 'from-purple-500 to-pink-500',
-  },
-  {
     title: 'Reports',
     icon: FileText,
     href: '/dashboard/reports',
     gradient: 'from-orange-500 to-red-500',
   },
-  {
-    title: 'Analytics',
-    icon: BarChart3,
-    href: '/dashboard/analytics',
-    gradient: 'from-indigo-500 to-purple-500',
-  },
-  {
-    title: 'Appointments',
-    icon: Calendar,
-    href: '/dashboard/appointments',
-    gradient: 'from-teal-500 to-green-500',
-  },
 ];
 
-const bottomMenuItems = [
-  {
-    title: 'Profile',
-    icon: User,
-    href: '/dashboard/profile',
-    gradient: 'from-gray-500 to-gray-600',
-  },
-  {
-    title: 'Settings',
-    icon: Settings,
-    href: '/dashboard/settings',
-    gradient: 'from-gray-500 to-gray-600',
-  },
-];
+// Bottom menu items removed - only Dashboard and Reports needed
 
 export function Sidebar({ className }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -196,33 +153,8 @@ export function Sidebar({ className }: SidebarProps) {
         </div>
       )}
 
-      {/* Bottom Section */}
-      <div className="border-t p-3 space-y-1">
-        {bottomMenuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
-          
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:bg-accent/50',
-                isActive && 'bg-accent/50 text-accent-foreground'
-              )}
-            >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors group-hover:text-foreground">
-                <Icon className="h-5 w-5" />
-              </div>
-              {!collapsed && (
-                <span className="text-muted-foreground transition-colors group-hover:text-foreground">
-                  {item.title}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-        
+      {/* Bottom Section - Only Logout */}
+      <div className="border-t p-3">
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 px-3 text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/20"

@@ -43,6 +43,8 @@ export async function POST(request: Request) {
     // Extract all fields from request
     const {
       // User info
+      name,
+      phoneNumber,
       age,
       height,
       weight,
@@ -191,6 +193,10 @@ export async function POST(request: Request) {
         source: 'device',
         faceScanId,
         
+        // User Info
+        name: name || null,
+        phoneNumber: phoneNumber || null,
+        
         // Basic Vitals (use new fields or fallback to legacy)
         heartRate: heart_rate ? parseInt(heart_rate.toString()) : (heartRate ? parseInt(heartRate) : null),
         prq: prq ? parseFloat(prq.toString()) : null,
@@ -253,6 +259,8 @@ export async function POST(request: Request) {
         patientId,
         timestamp: vital.recordedAt,
         faceScanId,
+        name: vital.name,
+        phoneNumber: vital.phoneNumber,
         vitals: {
           // Basic vitals
           heartRate: vital.heartRate,
