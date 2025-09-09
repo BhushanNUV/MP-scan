@@ -3,11 +3,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Activity, Heart, TrendingUp, Zap } from 'lucide-react';
+import { Activity, Heart, Zap } from 'lucide-react';
+
+interface VitalData {
+  heartRate?: number;
+  hrvSdnn?: number;
+  stressLevel?: number | string;
+  oxygenSaturation?: number;
+  pnsIndex?: number;
+  snsIndex?: number;
+  bloodPressureSystolic?: number;
+  bloodPressureDiastolic?: number;
+}
 
 interface ECGChartProps {
-  vital: any;
+  vital: VitalData;
 }
 
 // ECG Lead configurations
@@ -52,10 +62,14 @@ export function ECGChart({ vital }: ECGChartProps) {
     // Extract vital parameters - handle both number and null values
     const heartRate = vital?.heartRate || 72;
     const hrvSdnn = vital?.hrvSdnn || 42;
-    const stressLevel = vital?.stressLevel || 0.3;
-    const oxygenSaturation = vital?.oxygenSaturation || 98;
-    const pnsIndex = vital?.pnsIndex || 0.5;
-    const snsIndex = vital?.snsIndex || 0.5;
+    const stressLevelNum = typeof vital?.stressLevel === 'number' 
+      ? vital.stressLevel 
+      : vital?.stressLevel === 'HIGH' ? 0.8 
+      : vital?.stressLevel === 'MILD' ? 0.4 
+      : 0.3;
+    // const oxygenSaturation = vital?.oxygenSaturation || 98;
+    // const pnsIndex = vital?.pnsIndex || 0.5;
+    // const snsIndex = vital?.snsIndex || 0.5;
     
     // Get lead configuration
     const leadConfig = ECG_LEADS[lead as keyof typeof ECG_LEADS];
@@ -104,12 +118,12 @@ export function ECGChart({ vital }: ECGChartProps) {
     
     // Calculate ECG metrics
     const prInterval = 160 - (heartRate - 60) * 0.4; // ms
-    const qrsDuration = 90 + stressLevel * 20; // ms
+    const qrsDuration = 90 + stressLevelNum * 20; // ms
     const qtInterval = 400 - (heartRate - 60) * 2; // ms
     const qtcInterval = qtInterval / Math.sqrt(rrInterval); // Bazett's formula
     const pWaveDuration = 80 + (heartRate > 100 ? -10 : 0); // P wave shortens in tachycardia
     const tWaveDuration = 160 - (heartRate - 60) * 0.5; // T wave duration
-    const tWaveDeflection = 0.2 + (stressLevel * 0.1); // T wave amplitude in mV
+    const tWaveDeflection = 0.2 + (stressLevelNum * 0.1); // T wave amplitude in mV
     const intervalsMeasured = 5; // Number of intervals measured
     
     // Debug logging
@@ -276,10 +290,12 @@ export function ECGChart({ vital }: ECGChartProps) {
     if (vital) {
       generateECG(selectedLead);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLead, vital]);
 
   useEffect(() => {
     drawECG();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ecgData]);
 
   return (
@@ -373,8 +389,8 @@ export function ECGChart({ vital }: ECGChartProps) {
               ECG Interpretation
             </h4>
             <div className="space-y-2 text-sm">
-              <p>• Rhythm: {vital.heartRate > 100 ? 'Tachycardia' : vital.heartRate < 60 ? 'Bradycardia' : 'Normal Sinus Rhythm'}</p>
-              <p>• Rate: {vital.heartRate} bpm {vital.heartRate >= 60 && vital.heartRate <= 100 ? '(Normal)' : '(Abnormal)'}</p>
+              <p>• Rhythm: {vital.heartRate && vital.heartRate > 100 ? 'Tachycardia' : vital.heartRate && vital.heartRate < 60 ? 'Bradycardia' : 'Normal Sinus Rhythm'}</p>
+              <p>• Rate: {vital.heartRate || 'N/A'} bpm {vital.heartRate && vital.heartRate >= 60 && vital.heartRate <= 100 ? '(Normal)' : vital.heartRate ? '(Abnormal)' : ''}</p>
               <p>• PR Interval: {ecgMetrics.prInterval} ms {ecgMetrics.prInterval >= 120 && ecgMetrics.prInterval <= 200 ? '(Normal)' : '(Abnormal)'}</p>
               <p>• QRS Complex: {ecgMetrics.qrsDuration} ms {ecgMetrics.qrsDuration <= 100 ? '(Normal)' : '(Widened)'}</p>
               <p>• QTc: {ecgMetrics.qtcInterval} ms {ecgMetrics.qtcInterval <= 440 ? '(Normal)' : '(Prolonged)'}</p>
