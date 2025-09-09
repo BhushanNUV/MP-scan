@@ -21,20 +21,19 @@ import {
 } from '@/components/ui/select';
 import { 
   FileText, 
-  Calendar,
   Heart,
   Activity,
   Brain,
-  TrendingUp,
-  TrendingDown,
   AlertCircle,
   Printer,
   Download,
   Filter,
   Eye,
   Droplets,
-  Wind,
-  RefreshCw
+  RefreshCw,
+  User,
+  Clock,
+  Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/utils/calculations';
@@ -48,6 +47,7 @@ interface Vital {
   // User Info
   name?: string;
   phoneNumber?: string;
+  notes?: string;
   
   // Basic Vitals
   heartRate?: number;
@@ -68,16 +68,24 @@ interface Vital {
   breathingRateConfLevel?: number;
   
   // Stress & Recovery
-  stressLevel?: number;
+  stressLevel?: number | string;
   stressIndex?: number;
+  stressResponse?: string;
   recoveryAbility?: string;
+  respiration?: number;
   
   // HRV Metrics
   hrvSdnn?: number;
+  hrvSdnnConfLevel?: number;
   pnsIndex?: number;
   pnsZone?: string;
   snsIndex?: number;
   snsZone?: string;
+  sd1?: number;
+  sd2?: number;
+  rmssd?: number;
+  meanRri?: number;
+  lfHf?: number;
   wellnessIndex?: number;
   wellnessLevel?: string;
   
@@ -90,6 +98,11 @@ interface Vital {
   strokeRiskProbability?: number;
   hypertensionRisk?: string;
   hypertensionRiskProbability?: number;
+  highFastingGlucoseRisk?: string;
+  highTotalCholesterolRisk?: string;
+  lowHemoglobinRisk?: string;
+  ascvdRisk?: string;
+  heartAge?: string;
   asthmaRisk?: string;
   alzheimersRisk?: string;
   
@@ -1056,20 +1069,56 @@ export default function ReportsPage() {
               {/* ECG Analysis */}
               <ECGChart vital={selectedVital} />
 
-              {/* Basic Vitals */}
+              {/* Patient Information */}
+              {(selectedVital.name || selectedVital.phoneNumber || selectedVital.notes) && (
+                <div>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Patient Information
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {selectedVital.name && (
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-xs text-muted-foreground">Name</p>
+                        <p className="text-lg font-semibold">{selectedVital.name}</p>
+                      </div>
+                    )}
+                    {selectedVital.phoneNumber && (
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-xs text-muted-foreground">Phone Number</p>
+                        <p className="text-lg font-semibold">{selectedVital.phoneNumber}</p>
+                      </div>
+                    )}
+                    {selectedVital.notes && (
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-xs text-muted-foreground">Notes/DOB</p>
+                        <p className="text-lg font-semibold">{selectedVital.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Basic Vitals with Confidence Levels */}
               <div>
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <Activity className="h-5 w-5" />
                   Basic Vitals
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {selectedVital.oxygenSaturation !== undefined && (
+                  {selectedVital.heartRate !== undefined && selectedVital.heartRate !== null && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">Heart Rate</p>
+                      <p className="text-xl font-bold">{selectedVital.heartRate} bpm</p>
+                      {selectedVital.heartRateConfLevel !== undefined && selectedVital.heartRateConfLevel !== null && (
+                        <p className="text-xs text-green-600">Confidence: {selectedVital.heartRateConfLevel}/3</p>
+                      )}
+                    </div>
+                  )}
+                  {selectedVital.oxygenSaturation !== undefined && selectedVital.oxygenSaturation !== null && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">Oxygen Saturation</p>
                       <p className="text-xl font-bold">{selectedVital.oxygenSaturation}%</p>
-                      {selectedVital.oxygenSaturationConfLevel && (
-                        <p className="text-xs">Confidence: {selectedVital.oxygenSaturationConfLevel}/3</p>
-                      )}
                     </div>
                   )}
                   {(selectedVital.bloodPressure || selectedVital.bloodPressureSystolic) && (
@@ -1081,22 +1130,34 @@ export default function ReportsPage() {
                       </p>
                     </div>
                   )}
-                  {selectedVital.breathingRate !== undefined && (
+                  {selectedVital.breathingRate !== undefined && selectedVital.breathingRate !== null && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">Breathing Rate</p>
                       <p className="text-xl font-bold">{selectedVital.breathingRate} rpm</p>
+                      {selectedVital.breathingRateConfLevel !== undefined && selectedVital.breathingRateConfLevel !== null && (
+                        <p className="text-xs text-green-600">Confidence: {selectedVital.breathingRateConfLevel}/3</p>
+                      )}
                     </div>
                   )}
-                  {selectedVital.temperature !== undefined && (
+                  {selectedVital.respiration !== undefined && selectedVital.respiration !== null && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">Respiration</p>
+                      <p className="text-xl font-bold">{selectedVital.respiration}</p>
+                    </div>
+                  )}
+                  {selectedVital.prq !== undefined && selectedVital.prq !== null && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">PRQ (Pulse Rate Quality)</p>
+                      <p className="text-xl font-bold">{selectedVital.prq}</p>
+                      {selectedVital.prqConfLevel !== undefined && selectedVital.prqConfLevel !== null && (
+                        <p className="text-xs text-green-600">Confidence: {selectedVital.prqConfLevel}/3</p>
+                      )}
+                    </div>
+                  )}
+                  {selectedVital.temperature !== undefined && selectedVital.temperature !== null && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">Temperature</p>
                       <p className="text-xl font-bold">{selectedVital.temperature}°C</p>
-                    </div>
-                  )}
-                  {selectedVital.bloodGlucose !== undefined && (
-                    <div className="p-3 border rounded-lg">
-                      <p className="text-xs text-muted-foreground">Blood Glucose</p>
-                      <p className="text-xl font-bold">{selectedVital.bloodGlucose} mg/dL</p>
                     </div>
                   )}
                   {selectedVital.bmi !== undefined && selectedVital.bmi !== null && (
@@ -1115,16 +1176,35 @@ export default function ReportsPage() {
                   Stress & HRV Analysis
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {selectedVital.stressLevel !== undefined && (
+                  {selectedVital.stressLevel !== undefined && selectedVital.stressLevel !== null && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">Stress Level</p>
-                      <p className="text-xl font-bold">{(selectedVital.stressLevel * 100).toFixed(0)}%</p>
+                      <p className="text-xl font-bold">
+                        {typeof selectedVital.stressLevel === 'number' 
+                          ? `${(selectedVital.stressLevel * 100).toFixed(0)}%` 
+                          : selectedVital.stressLevel}
+                      </p>
+                    </div>
+                  )}
+                  {selectedVital.stressResponse && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">Stress Response</p>
+                      <p className="text-xl font-bold">{selectedVital.stressResponse}</p>
+                    </div>
+                  )}
+                  {selectedVital.recoveryAbility && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">Recovery Ability</p>
+                      <p className="text-xl font-bold">{selectedVital.recoveryAbility}</p>
                     </div>
                   )}
                   {selectedVital.hrvSdnn !== undefined && selectedVital.hrvSdnn !== null && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">HRV SDNN</p>
                       <p className="text-xl font-bold">{selectedVital.hrvSdnn.toFixed(1)}ms</p>
+                      {selectedVital.hrvSdnnConfLevel !== undefined && selectedVital.hrvSdnnConfLevel !== null && (
+                        <p className="text-xs text-green-600">Confidence: {selectedVital.hrvSdnnConfLevel}/3</p>
+                      )}
                     </div>
                   )}
                   {selectedVital.pnsIndex !== undefined && selectedVital.pnsIndex !== null && (
@@ -1145,6 +1225,36 @@ export default function ReportsPage() {
                       )}
                     </div>
                   )}
+                  {selectedVital.rmssd !== undefined && selectedVital.rmssd !== null && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">RMSSD</p>
+                      <p className="text-xl font-bold">{selectedVital.rmssd.toFixed(1)}ms</p>
+                    </div>
+                  )}
+                  {selectedVital.sd1 !== undefined && selectedVital.sd1 !== null && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">SD1</p>
+                      <p className="text-xl font-bold">{selectedVital.sd1.toFixed(1)}ms</p>
+                    </div>
+                  )}
+                  {selectedVital.sd2 !== undefined && selectedVital.sd2 !== null && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">SD2</p>
+                      <p className="text-xl font-bold">{selectedVital.sd2.toFixed(1)}ms</p>
+                    </div>
+                  )}
+                  {selectedVital.meanRri !== undefined && selectedVital.meanRri !== null && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">Mean RRI</p>
+                      <p className="text-xl font-bold">{selectedVital.meanRri.toFixed(0)}ms</p>
+                    </div>
+                  )}
+                  {selectedVital.lfHf !== undefined && selectedVital.lfHf !== null && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">LF/HF Ratio</p>
+                      <p className="text-xl font-bold">{selectedVital.lfHf.toFixed(3)}</p>
+                    </div>
+                  )}
                   {selectedVital.wellnessIndex !== undefined && selectedVital.wellnessIndex !== null && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">Wellness Index</p>
@@ -1152,12 +1262,6 @@ export default function ReportsPage() {
                       {selectedVital.wellnessLevel && (
                         <p className="text-xs">{selectedVital.wellnessLevel}</p>
                       )}
-                    </div>
-                  )}
-                  {selectedVital.recoveryAbility && (
-                    <div className="p-3 border rounded-lg">
-                      <p className="text-xs text-muted-foreground">Recovery Ability</p>
-                      <p className="text-xl font-bold">{selectedVital.recoveryAbility}</p>
                     </div>
                   )}
                 </div>
@@ -1230,6 +1334,79 @@ export default function ReportsPage() {
                       )}
                     </div>
                   )}
+                  {selectedVital.highFastingGlucoseRisk && (
+                    <div className="p-3 border rounded-lg flex justify-between items-center">
+                      <div>
+                        <p className="text-xs text-muted-foreground">High Fasting Glucose Risk</p>
+                        <p className={`font-semibold ${
+                          selectedVital.highFastingGlucoseRisk === '3' || selectedVital.highFastingGlucoseRisk === 'HIGH' 
+                            ? 'text-red-600' 
+                            : selectedVital.highFastingGlucoseRisk === '2' || selectedVital.highFastingGlucoseRisk === 'MEDIUM' 
+                              ? 'text-yellow-600' 
+                              : 'text-green-600'
+                        }`}>
+                          {selectedVital.highFastingGlucoseRisk === '3' ? 'HIGH' : 
+                           selectedVital.highFastingGlucoseRisk === '2' ? 'MEDIUM' :
+                           selectedVital.highFastingGlucoseRisk === '1' ? 'LOW' :
+                           selectedVital.highFastingGlucoseRisk}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {selectedVital.highTotalCholesterolRisk && (
+                    <div className="p-3 border rounded-lg flex justify-between items-center">
+                      <div>
+                        <p className="text-xs text-muted-foreground">High Total Cholesterol Risk</p>
+                        <p className={`font-semibold ${
+                          selectedVital.highTotalCholesterolRisk === '3' || selectedVital.highTotalCholesterolRisk === 'HIGH' 
+                            ? 'text-red-600' 
+                            : selectedVital.highTotalCholesterolRisk === '2' || selectedVital.highTotalCholesterolRisk === 'MEDIUM' 
+                              ? 'text-yellow-600' 
+                              : 'text-green-600'
+                        }`}>
+                          {selectedVital.highTotalCholesterolRisk === '3' ? 'HIGH' : 
+                           selectedVital.highTotalCholesterolRisk === '2' ? 'MEDIUM' :
+                           selectedVital.highTotalCholesterolRisk === '1' ? 'LOW' :
+                           selectedVital.highTotalCholesterolRisk}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {selectedVital.lowHemoglobinRisk && (
+                    <div className="p-3 border rounded-lg flex justify-between items-center">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Low Hemoglobin Risk</p>
+                        <p className={`font-semibold ${
+                          selectedVital.lowHemoglobinRisk === '3' || selectedVital.lowHemoglobinRisk === 'HIGH' 
+                            ? 'text-red-600' 
+                            : selectedVital.lowHemoglobinRisk === '2' || selectedVital.lowHemoglobinRisk === 'MEDIUM' 
+                              ? 'text-yellow-600' 
+                              : 'text-green-600'
+                        }`}>
+                          {selectedVital.lowHemoglobinRisk === '3' ? 'HIGH' : 
+                           selectedVital.lowHemoglobinRisk === '2' ? 'MEDIUM' :
+                           selectedVital.lowHemoglobinRisk === '1' ? 'LOW' :
+                           selectedVital.lowHemoglobinRisk}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {selectedVital.ascvdRisk && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">ASCVD Risk</p>
+                      <p className={`font-semibold ${getRiskColor(selectedVital.ascvdRisk)}`}>
+                        {selectedVital.ascvdRisk}
+                      </p>
+                    </div>
+                  )}
+                  {selectedVital.heartAge && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">Heart Age</p>
+                      <p className="font-semibold text-lg">
+                        {selectedVital.heartAge}
+                      </p>
+                    </div>
+                  )}
                   {selectedVital.asthmaRisk && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">Asthma Risk</p>
@@ -1240,7 +1417,7 @@ export default function ReportsPage() {
                   )}
                   {selectedVital.alzheimersRisk && (
                     <div className="p-3 border rounded-lg">
-                      <p className="text-xs text-muted-foreground">Alzheimer\'s Risk</p>
+                      <p className="text-xs text-muted-foreground">Alzheimer's Risk</p>
                       <p className={`font-semibold ${getRiskColor(selectedVital.alzheimersRisk)}`}>
                         {selectedVital.alzheimersRisk}
                       </p>
@@ -1250,7 +1427,7 @@ export default function ReportsPage() {
               </div>
 
               {/* Blood Metrics */}
-              {(selectedVital.hemoglobin || selectedVital.hba1c) && (
+              {(selectedVital.hemoglobin || selectedVital.hba1c || selectedVital.bloodGlucose) && (
                 <div>
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Droplets className="h-5 w-5" />
@@ -1266,7 +1443,13 @@ export default function ReportsPage() {
                     {selectedVital.hba1c !== undefined && selectedVital.hba1c !== null && (
                       <div className="p-3 border rounded-lg">
                         <p className="text-xs text-muted-foreground">HbA1c</p>
-                        <p className="text-xl font-bold">{selectedVital.hba1c.toFixed(1)}%</p>
+                        <p className="text-xl font-bold">{selectedVital.hba1c.toFixed(2)}%</p>
+                      </div>
+                    )}
+                    {selectedVital.bloodGlucose !== undefined && selectedVital.bloodGlucose !== null && (
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-xs text-muted-foreground">Blood Glucose</p>
+                        <p className="text-xl font-bold">{selectedVital.bloodGlucose} mg/dL</p>
                       </div>
                     )}
                   </div>
