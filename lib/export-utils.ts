@@ -1,4 +1,4 @@
-export function exportToCSV(data: any[], filename: string) {
+export function exportToCSV(data: Record<string, unknown>[], filename: string) {
   if (!data || data.length === 0) {
     console.error('No data to export');
     return;
@@ -42,7 +42,23 @@ export function exportToCSV(data: any[], filename: string) {
   document.body.removeChild(link);
 }
 
-export function formatVitalsForExport(vitals: any[]) {
+interface VitalData {
+  recordedAt: string | Date;
+  bloodPressureSystolic?: number;
+  bloodPressureDiastolic?: number;
+  heartRate?: number;
+  temperature?: number;
+  oxygenSaturation?: number;
+  respiratoryRate?: number;
+  bloodGlucose?: number;
+  weight?: number;
+  bmi?: number;
+  painLevel?: number;
+  notes?: string;
+  symptoms?: string;
+}
+
+export function formatVitalsForExport(vitals: VitalData[]) {
   return vitals.map(v => ({
     'Date': new Date(v.recordedAt).toLocaleDateString(),
     'Time': new Date(v.recordedAt).toLocaleTimeString(),
@@ -62,7 +78,13 @@ export function formatVitalsForExport(vitals: any[]) {
   }));
 }
 
-export async function generatePDFReport(data: any, period: string) {
+interface ReportData {
+  vitals?: VitalData[];
+  summary?: Record<string, unknown>;
+  patient?: Record<string, unknown>;
+}
+
+export async function generatePDFReport(data: ReportData, period: string) {
   // This would integrate with a PDF library like jsPDF
   // For now, we'll create a simple HTML report that can be printed to PDF
   

@@ -164,18 +164,22 @@ export default function ReportsPage() {
     const hasHeartRate = vital.heartRate && vital.heartRate > 0;
     const heartRate = vital.heartRate || 72;
     const hrvSdnn = vital.hrvSdnn || 42;
-    const stressLevel = vital.stressLevel || 0.3;
+    const stressLevelNum = typeof vital.stressLevel === 'number' 
+      ? vital.stressLevel 
+      : vital.stressLevel === 'HIGH' ? 0.8 
+      : vital.stressLevel === 'MILD' ? 0.4 
+      : 0.3;
     const oxygenSaturation = vital.oxygenSaturation || 98;
     const pnsIndex = vital.pnsIndex || 0.5;
     const snsIndex = vital.snsIndex || 0.5;
     const rrInterval = 60 / heartRate;
     const prInterval = 160 - (heartRate - 60) * 0.4;
-    const qrsDuration = 90 + stressLevel * 20;
+    const qrsDuration = 90 + stressLevelNum * 20;
     const qtInterval = 400 - (heartRate - 60) * 2;
     const qtcInterval = qtInterval / Math.sqrt(rrInterval);
     const pWaveDuration = 80 + (heartRate > 100 ? -10 : 0);
     const tWaveDuration = 160 - (heartRate - 60) * 0.5;
-    const tWaveDeflection = 0.2 + (stressLevel * 0.1);
+    const tWaveDeflection = 0.2 + (stressLevelNum * 0.1);
 
     // Generate ECG waveform data for SVG
     const generateECGPath = () => {
@@ -231,7 +235,7 @@ export default function ReportsPage() {
           amplitude = 0.35 * Math.sin(Math.PI * tProgress);
           
           // Modify T wave based on conditions
-          if (stressLevel > 0.5) amplitude *= 0.8;
+          if (stressLevelNum > 0.5) amplitude *= 0.8;
           if (oxygenSaturation < 90) amplitude *= 0.7;
         }
         
@@ -594,7 +598,11 @@ export default function ReportsPage() {
                   vital.stressLevel !== undefined ? `
                     <div class="metric">
                       <div class="metric-label">Stress Level</div>
-                      <div class="metric-value">${(vital.stressLevel * 100).toFixed(0)}<span class="metric-unit">%</span></div>
+                      <div class="metric-value">${
+                        typeof vital.stressLevel === 'number' 
+                          ? (vital.stressLevel * 100).toFixed(0) + '%'
+                          : vital.stressLevel
+                      }</div>
                     </div>
                   ` : '',
                   vital.hrvSdnn !== undefined && vital.hrvSdnn !== null ? `
