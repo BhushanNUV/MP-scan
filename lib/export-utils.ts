@@ -78,10 +78,16 @@ export function formatVitalsForExport(vitals: VitalData[]) {
   }));
 }
 
+interface SummaryData {
+  bloodPressureSystolic?: { average: number };
+  heartRate?: { average: number };
+}
+
 interface ReportData {
   vitals?: VitalData[];
-  summary?: Record<string, unknown>;
+  summary?: SummaryData;
   patient?: Record<string, unknown>;
+  healthScore?: number;
 }
 
 export async function generatePDFReport(data: ReportData, period: string) {
