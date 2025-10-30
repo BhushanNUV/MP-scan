@@ -17,7 +17,7 @@ export async function GET() {
         deviceId: true,
         apiToken: true,
         createdAt: true,
-        profile: {
+        UserProfile: {
           select: {
             firstName: true,
             lastName: true,
@@ -25,8 +25,8 @@ export async function GET() {
         },
         _count: {
           select: {
-            patients: true,
-            faceScanData: true,
+            Patient: true,
+            FaceScan: true,
           },
         },
       },

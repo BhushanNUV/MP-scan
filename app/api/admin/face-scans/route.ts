@@ -13,7 +13,7 @@ export async function GET() {
         createdAt: true,
         confidence: true,
         deviceId: true,
-        user: {
+        User: {
           select: {
             email: true,
             name: true,
