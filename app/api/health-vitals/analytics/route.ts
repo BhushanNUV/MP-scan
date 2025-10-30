@@ -36,10 +36,10 @@ export async function GET(request: NextRequest) {
     // Get user's patient profile
     const dbUser = await prisma.user.findUnique({
       where: { email: user.email! },
-      include: { patients: true },
+      include: { Patient: true },
     });
-    
-    if (!dbUser || !dbUser.patients[0]) {
+
+    if (!dbUser || !dbUser.Patient[0]) {
       return NextResponse.json({
         data: {
           summary: {},
@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
         message: 'No patient profile found',
       });
     }
-    
-    const patientId = dbUser.patients[0].id;
+
+    const patientId = dbUser.Patient[0].id;
     
     // Get all vitals in the date range
     const vitals = await prisma.vitals.findMany({

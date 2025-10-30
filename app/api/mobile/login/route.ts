@@ -21,8 +21,8 @@ export async function POST(request: Request) {
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
-        profile: true,
-        patients: {
+        UserProfile: true,
+        Patient: {
           take: 1,
         },
       },
@@ -70,18 +70,18 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         email: user.email,
-        name: user.name || `${user.profile?.firstName || ''} ${user.profile?.lastName || ''}`.trim(),
+        name: user.name || `${user.UserProfile?.firstName || ''} ${user.UserProfile?.lastName || ''}`.trim(),
         apiToken,
         profile: {
-          firstName: user.profile?.firstName || '',
-          lastName: user.profile?.lastName || '',
-          age: user.profile?.dateOfBirth ? 
-            Math.floor((Date.now() - new Date(user.profile.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null,
-          height: user.profile?.height || null,
-          weight: user.profile?.weight || null,
-          gender: user.profile?.gender || '',
+          firstName: user.UserProfile?.firstName || '',
+          lastName: user.UserProfile?.lastName || '',
+          age: user.UserProfile?.dateOfBirth ?
+            Math.floor((Date.now() - new Date(user.UserProfile.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null,
+          height: user.UserProfile?.height || null,
+          weight: user.UserProfile?.weight || null,
+          gender: user.UserProfile?.gender || '',
         },
-        patientId: user.patients[0]?.id || null,
+        patientId: user.Patient[0]?.id || null,
       },
     });
   } catch (error) {

@@ -15,7 +15,7 @@ export async function POST(request: Request) {
       user = await prisma.user.findUnique({
         where: { apiToken },
         include: {
-          patients: {
+          Patient: {
             take: 1,
           },
         },
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       user = await prisma.user.findFirst({
         where: { email: 'public@device.local' },
         include: {
-          patients: {
+          Patient: {
             take: 1,
           },
         },
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
             role: 'device',
           },
           include: {
-            patients: {
+            Patient: {
               take: 1,
             },
           },
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
     }
 
     // Get or create patient
-    let patientId = user.patients[0]?.id;
+    let patientId = user.Patient[0]?.id;
     
     if (!patientId) {
       const newPatient = await prisma.patient.create({

@@ -38,23 +38,23 @@ export async function POST(request: NextRequest) {
     // Get user's patient profile
     const dbUser = await prisma.user.findUnique({
       where: { email: user.email! },
-      include: { patients: true },
+      include: { Patient: true },
     });
-    
-    if (!dbUser || !dbUser.patients[0]) {
+
+    if (!dbUser || !dbUser.Patient[0]) {
       return NextResponse.json(
         { error: 'Patient profile not found. Please complete your profile first.' },
         { status: 404 }
       );
     }
-    
-    const patientId = dbUser.patients[0].id;
-    
+
+    const patientId = dbUser.Patient[0].id;
+
     // Calculate BMI if height and weight are available
     let calculatedBmi = validatedData.bmi;
-    if (!calculatedBmi && dbUser.patients[0].height && dbUser.patients[0].weight) {
-      const heightInMeters = dbUser.patients[0].height / 100;
-      calculatedBmi = dbUser.patients[0].weight / (heightInMeters * heightInMeters);
+    if (!calculatedBmi && dbUser.Patient[0].height && dbUser.Patient[0].weight) {
+      const heightInMeters = dbUser.Patient[0].height / 100;
+      calculatedBmi = dbUser.Patient[0].weight / (heightInMeters * heightInMeters);
     }
     
     // Create new vitals record
@@ -94,10 +94,10 @@ export async function GET(request: NextRequest) {
     // Get user's patient profile
     const dbUser = await prisma.user.findUnique({
       where: { email: user.email! },
-      include: { patients: true },
+      include: { Patient: true },
     });
-    
-    if (!dbUser || !dbUser.patients[0]) {
+
+    if (!dbUser || !dbUser.Patient[0]) {
       return NextResponse.json({
         data: [],
         pagination: {
@@ -108,8 +108,8 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-    
-    const patientId = dbUser.patients[0].id;
+
+    const patientId = dbUser.Patient[0].id;
     
     // Build where clause
     const where: any = { patientId };

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
         name: true,
         image: true,
         createdAt: true,
-        patients: {
+        Patient: {
           select: {
             id: true,
             firstName: true,
@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
     // Return user with their patient profile (if exists)
     const response = {
       ...userProfile,
-      patient: userProfile.patients[0] || null,
-      patients: undefined, // Remove the array, return single patient
+      patient: userProfile.Patient[0] || null,
+      Patient: undefined, // Remove the array, return single patient
     };
     
     return NextResponse.json(response);

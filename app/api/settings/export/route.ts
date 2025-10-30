@@ -17,15 +17,15 @@ export async function GET(request: Request) {
     const userData = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
-        profile: true,
-        settings: true,
-        patients: {
+        UserProfile: true,
+        UserSettings: true,
+        Patient: {
           include: {
-            vitals: true,
-            appointments: true,
-            prescriptions: true,
-            labResults: true,
-            medicalDocuments: true,
+            Vitals: true,
+            Appointment: true,
+            Prescription: true,
+            LabResult: true,
+            MedicalDocument: true,
           },
         },
       },

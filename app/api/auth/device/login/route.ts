@@ -17,8 +17,8 @@ export async function POST(request: Request) {
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
-        profile: true,
-        patients: true,
+        UserProfile: true,
+        Patient: true,
       },
     });
 
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         name: true,
         role: true,
         apiToken: true,
-        profile: {
+        UserProfile: {
           select: {
             firstName: true,
             lastName: true,
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
             bloodType: true,
           },
         },
-        patients: {
+        Patient: {
           select: {
             id: true,
             firstName: true,
@@ -80,8 +80,8 @@ export async function POST(request: Request) {
         email: updatedUser.email,
         name: updatedUser.name,
         role: updatedUser.role,
-        profile: updatedUser.profile,
-        patients: updatedUser.patients,
+        profile: updatedUser.UserProfile,
+        patients: updatedUser.Patient,
       },
       apiToken: updatedUser.apiToken,
       message: 'Login successful',

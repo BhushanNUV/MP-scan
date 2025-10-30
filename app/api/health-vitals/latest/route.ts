@@ -10,17 +10,17 @@ export async function GET(request: NextRequest) {
     // Get user's patient profile
     const dbUser = await prisma.user.findUnique({
       where: { email: user.email! },
-      include: { patients: true },
+      include: { Patient: true },
     });
-    
-    if (!dbUser || !dbUser.patients[0]) {
+
+    if (!dbUser || !dbUser.Patient[0]) {
       return NextResponse.json({
         data: null,
         message: 'No patient profile found',
       });
     }
-    
-    const patientId = dbUser.patients[0].id;
+
+    const patientId = dbUser.Patient[0].id;
     
     // Get the latest vitals record
     const latestVitals = await prisma.vitals.findFirst({
@@ -86,10 +86,10 @@ export async function GET(request: NextRequest) {
         changes,
         healthStatus,
         patient: {
-          id: dbUser.patients[0].id,
-          name: `${dbUser.patients[0].firstName} ${dbUser.patients[0].lastName}`,
-          age: calculateAge(dbUser.patients[0].dateOfBirth),
-          bloodType: dbUser.patients[0].bloodType,
+          id: dbUser.Patient[0].id,
+          name: `${dbUser.Patient[0].firstName} ${dbUser.Patient[0].lastName}`,
+          age: calculateAge(dbUser.Patient[0].dateOfBirth),
+          bloodType: dbUser.Patient[0].bloodType,
         },
       },
     });

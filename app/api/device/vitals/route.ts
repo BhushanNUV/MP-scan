@@ -13,8 +13,8 @@ async function authenticateDevice(request: Request) {
   const user = await prisma.user.findUnique({
     where: { apiToken },
     include: {
-      profile: true,
-      patients: true,
+      UserProfile: true,
+      Patient: true,
     },
   });
 
@@ -53,19 +53,19 @@ export async function POST(request: Request) {
       });
     }
 
-    const targetPatientId = patientId || user.patients[0]?.id;
+    const targetPatientId = patientId || user.Patient[0]?.id;
 
     if (!targetPatientId) {
       const newPatient = await prisma.patient.create({
         data: {
           userId: user.id,
-          firstName: user.profile?.firstName || user.name?.split(' ')[0] || 'User',
-          lastName: user.profile?.lastName || user.name?.split(' ')[1] || '',
-          dateOfBirth: user.profile?.dateOfBirth || new Date(),
+          firstName: user.UserProfile?.firstName || user.name?.split(' ')[0] || 'User',
+          lastName: user.UserProfile?.lastName || user.name?.split(' ')[1] || '',
+          dateOfBirth: user.UserProfile?.dateOfBirth || new Date(),
           gender: 'Not specified',
-          height: user.profile?.height,
-          weight: user.profile?.weight,
-          bloodType: user.profile?.bloodType,
+          height: user.UserProfile?.height,
+          weight: user.UserProfile?.weight,
+          bloodType: user.UserProfile?.bloodType,
         },
       });
 
@@ -141,7 +141,7 @@ export async function GET(request: Request) {
       orderBy: { recordedAt: 'desc' },
       take: limit,
       include: {
-        patient: {
+        Patient: {
           select: {
             firstName: true,
             lastName: true,

@@ -248,8 +248,8 @@ export async function GET() {
         // Latest vital info
         latest: latestVitals ? {
           recordedAt: latestVitals.recordedAt,
-          patientName: latestVitals.patient ? 
-            `${latestVitals.patient.firstName} ${latestVitals.patient.lastName}` : 
+          patientName: latestVitals.Patient ?
+            `${latestVitals.Patient.firstName} ${latestVitals.Patient.lastName}` :
             'Unknown',
           heartRate: latestVitals.heartRate,
           oxygenSaturation: latestVitals.oxygenSaturation,
