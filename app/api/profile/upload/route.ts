@@ -46,8 +46,10 @@ export async function POST(request: Request) {
       where: { userId: session.user.id },
       update: updateData,
       create: {
+        id: crypto.randomUUID(),
         userId: session.user.id,
         ...updateData,
+        updatedAt: new Date(),
       },
     });
 

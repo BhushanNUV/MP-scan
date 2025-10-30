@@ -21,6 +21,7 @@ async function seedVitals() {
     if (!patient) {
       patient = await prisma.patient.create({
         data: {
+          id: crypto.randomUUID(),
           userId: user.id,
           firstName: 'John',
           lastName: 'Smith',
@@ -32,6 +33,7 @@ async function seedVitals() {
           height: 175,
           weight: 75,
           emergencyContact: 'Jane Smith - +0987654321',
+          updatedAt: new Date(),
         }
       });
     }
@@ -39,6 +41,7 @@ async function seedVitals() {
     // Create a comprehensive vital record with ALL fields filled
     const completeVital = await prisma.vitals.create({
       data: {
+        id: crypto.randomUUID(),
         patientId: patient.id,
         userId: user.id,
         recordedBy: 'Dr. Medical Professional',

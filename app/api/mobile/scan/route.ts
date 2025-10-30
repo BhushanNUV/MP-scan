@@ -132,11 +132,13 @@ export async function POST(request: Request) {
           dateOfBirth: birthYear ? new Date(`${birthYear}-01-01`) : undefined,
         },
         create: {
+          id: crypto.randomUUID(),
           userId: user.id,
           height,
           weight,
           gender,
           dateOfBirth: birthYear ? new Date(`${birthYear}-01-01`) : new Date(),
+          updatedAt: new Date(),
         },
       });
     }

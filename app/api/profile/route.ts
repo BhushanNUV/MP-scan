@@ -14,7 +14,7 @@ export async function GET() {
     const profile = await prisma.userProfile.findUnique({
       where: { userId: session.user.id },
       include: {
-        user: {
+        User: {
           select: {
             email: true,
             name: true,
@@ -27,10 +27,12 @@ export async function GET() {
     if (!profile) {
       const newProfile = await prisma.userProfile.create({
         data: {
+          id: crypto.randomUUID(),
           userId: session.user.id,
+          updatedAt: new Date(),
         },
         include: {
-          user: {
+          User: {
             select: {
               email: true,
               name: true,
@@ -87,6 +89,7 @@ export async function PUT(request: Request) {
         emergencyPhone: data.emergencyPhone,
       },
       create: {
+        id: crypto.randomUUID(),
         userId: session.user.id,
         firstName: data.firstName,
         lastName: data.lastName,
@@ -100,6 +103,7 @@ export async function PUT(request: Request) {
         postalCode: data.postalCode,
         bio: data.bio,
         occupation: data.occupation,
+        updatedAt: new Date(),
         company: data.company,
         website: data.website,
         socialLinks: data.socialLinks,
@@ -110,7 +114,7 @@ export async function PUT(request: Request) {
         emergencyPhone: data.emergencyPhone,
       },
       include: {
-        user: {
+        User: {
           select: {
             email: true,
             name: true,

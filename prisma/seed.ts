@@ -17,16 +17,21 @@ async function main() {
       password: adminPassword,
       role: 'admin',
       emailVerified: new Date(),
-      profile: {
+      UserProfile: {
         create: {
+          id: crypto.randomUUID(),
           firstName: 'Admin',
           lastName: 'User',
           dateOfBirth: new Date('1980-01-01'),
           gender: 'Not specified',
+          updatedAt: new Date(),
         },
       },
-      settings: {
-        create: {},
+      UserSettings: {
+        create: {
+          id: crypto.randomUUID(),
+          updatedAt: new Date(),
+        },
       },
     },
   });
@@ -43,8 +48,9 @@ async function main() {
       password: devicePassword,
       role: 'device',
       emailVerified: new Date(),
-      profile: {
+      UserProfile: {
         create: {
+          id: crypto.randomUUID(),
           firstName: 'John',
           lastName: 'Doe',
           dateOfBirth: new Date('1990-05-15'),
@@ -58,13 +64,18 @@ async function main() {
           state: 'Test State',
           country: 'Test Country',
           postalCode: '12345',
+          updatedAt: new Date(),
         },
       },
-      settings: {
-        create: {},
-      },
-      patients: {
+      UserSettings: {
         create: {
+          id: crypto.randomUUID(),
+          updatedAt: new Date(),
+        },
+      },
+      Patient: {
+        create: {
+          id: crypto.randomUUID(),
           firstName: 'John',
           lastName: 'Doe',
           dateOfBirth: new Date('1990-05-15'),
@@ -74,6 +85,7 @@ async function main() {
           bloodType: 'O+',
           phoneNumber: '+1234567890',
           address: '123 Test Street',
+          updatedAt: new Date(),
         },
       },
     },
@@ -91,8 +103,9 @@ async function main() {
       password: userPassword,
       role: 'user',
       emailVerified: new Date(),
-      profile: {
+      UserProfile: {
         create: {
+          id: crypto.randomUUID(),
           firstName: 'Jane',
           lastName: 'Smith',
           dateOfBirth: new Date('1985-03-20'),
@@ -100,13 +113,18 @@ async function main() {
           height: 165,
           weight: 60,
           bloodType: 'A+',
+          updatedAt: new Date(),
         },
       },
-      settings: {
-        create: {},
-      },
-      patients: {
+      UserSettings: {
         create: {
+          id: crypto.randomUUID(),
+          updatedAt: new Date(),
+        },
+      },
+      Patient: {
+        create: {
+          id: crypto.randomUUID(),
           firstName: 'Jane',
           lastName: 'Smith',
           dateOfBirth: new Date('1985-03-20'),
@@ -114,6 +132,7 @@ async function main() {
           height: 165,
           weight: 60,
           bloodType: 'A+',
+          updatedAt: new Date(),
         },
       },
     },
@@ -175,7 +194,7 @@ async function main() {
     ];
 
     for (const vital of vitalsData) {
-      await prisma.vitals.create({ data: vital });
+      await prisma.vitals.create({ data: { id: crypto.randomUUID(), ...vital } });
     }
     console.log('✅ Sample vitals created for device user');
   }
@@ -191,16 +210,21 @@ async function main() {
       password: briahScanAdminPassword,
       role: 'admin',
       emailVerified: new Date(),
-      profile: {
+      UserProfile: {
         create: {
+          id: crypto.randomUUID(),
           firstName: 'BriahScan',
           lastName: 'Administrator',
           dateOfBirth: new Date('1980-01-01'),
           gender: 'Admin',
+          updatedAt: new Date(),
         },
       },
-      settings: {
-        create: {},
+      UserSettings: {
+        create: {
+          id: crypto.randomUUID(),
+          updatedAt: new Date(),
+        },
       },
     },
   });

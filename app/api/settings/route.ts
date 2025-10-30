@@ -18,7 +18,9 @@ export async function GET() {
     if (!settings) {
       const newSettings = await prisma.userSettings.create({
         data: {
+          id: crypto.randomUUID(),
           userId: session.user.id,
+          updatedAt: new Date(),
         },
       });
       return NextResponse.json(newSettings);
