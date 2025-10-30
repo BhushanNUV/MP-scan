@@ -371,6 +371,16 @@ model BriahScan {
   bmi                      Float?
   painLevel                Int?
 
+  // Cardiovascular Metrics
+  cardiacWorkload          Float?
+  pulsePressure            Float?
+  meanArterialPressure     Float?
+
+  // Wellness & Risk Levels
+  ASCVDRiskLevel           String?
+  wellnessLevel            String?
+  wellnessIndex            Float?
+
   // Activity & Sleep
   stepsCount               Int?
   caloriesBurned           Float?

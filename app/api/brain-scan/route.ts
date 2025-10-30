@@ -69,6 +69,16 @@ export async function POST(request: Request) {
       bmi,
       painLevel,
 
+      // Cardiovascular Metrics
+      cardiacWorkload,
+      pulsePressure,
+      meanArterialPressure,
+
+      // Wellness & Risk Levels
+      ASCVDRiskLevel,
+      wellnessLevel,
+      wellnessIndex,
+
       // Activity & Sleep
       stepsCount,
       caloriesBurned,
@@ -148,6 +158,16 @@ export async function POST(request: Request) {
         triglycerides,
         bmi,
         painLevel,
+
+        // Cardiovascular Metrics
+        cardiacWorkload,
+        pulsePressure,
+        meanArterialPressure,
+
+        // Wellness & Risk Levels
+        ASCVDRiskLevel,
+        wellnessLevel,
+        wellnessIndex,
 
         // Activity & Sleep
         stepsCount,

@@ -882,17 +882,46 @@ export default function ReportsPage() {
           </div>
           ` : ''}
 
+          <!-- Cardiovascular Metrics -->
+          ${(vital.cardiacWorkload !== undefined || vital.pulsePressure !== undefined || vital.meanArterialPressure !== undefined) ? `
+          <div class="section">
+            <h2>Cardiovascular Metrics</h2>
+            <div class="metrics-grid">
+              ${[
+                vital.cardiacWorkload !== undefined && vital.cardiacWorkload !== null ? `
+                  <div class="metric">
+                    <div class="metric-label">Cardiac Workload</div>
+                    <div class="metric-value">${vital.cardiacWorkload.toFixed(2)}</div>
+                  </div>
+                ` : '',
+                vital.pulsePressure !== undefined && vital.pulsePressure !== null ? `
+                  <div class="metric">
+                    <div class="metric-label">Pulse Pressure</div>
+                    <div class="metric-value">${vital.pulsePressure.toFixed(1)} <span class="metric-unit">mmHg</span></div>
+                  </div>
+                ` : '',
+                vital.meanArterialPressure !== undefined && vital.meanArterialPressure !== null ? `
+                  <div class="metric">
+                    <div class="metric-label">Mean Arterial Pressure</div>
+                    <div class="metric-value">${vital.meanArterialPressure.toFixed(1)} <span class="metric-unit">mmHg</span></div>
+                  </div>
+                ` : ''
+              ].filter(Boolean).join('')}
+            </div>
+          </div>
+          ` : ''}
+
           <!-- Stress & HRV Analysis -->
-          ${(vital.hrvSdnn || vital.stressLevel !== undefined || vital.pnsIndex || vital.snsIndex || vital.wellnessIndex || vital.mspMatch) ? `
+          ${(vital.hrvSdnn || vital.stressLevel !== undefined || vital.pnsIndex || vital.snsIndex || vital.wellnessIndex || vital.wellnessLevel || vital.mspMatch || vital.meanRri || vital.rmssd || vital.sd1 || vital.sd2 || vital.lfHf) ? `
             <div class="section">
               <h2>Stress & HRV Analysis</h2>
               <div class="metrics-grid">
                 ${[
-                  vital.stressLevel !== undefined ? `
+                  vital.stressLevel !== undefined && vital.stressLevel !== null ? `
                     <div class="metric">
                       <div class="metric-label">Stress Level</div>
                       <div class="metric-value">${
-                        typeof vital.stressLevel === 'number' 
+                        typeof vital.stressLevel === 'number'
                           ? (vital.stressLevel * 100).toFixed(0) + '%'
                           : vital.stressLevel
                       }</div>
@@ -902,6 +931,36 @@ export default function ReportsPage() {
                     <div class="metric">
                       <div class="metric-label">HRV SDNN</div>
                       <div class="metric-value">${vital.hrvSdnn.toFixed(1)} <span class="metric-unit">ms</span></div>
+                    </div>
+                  ` : '',
+                  vital.rmssd !== undefined && vital.rmssd !== null ? `
+                    <div class="metric">
+                      <div class="metric-label">RMSSD</div>
+                      <div class="metric-value">${vital.rmssd.toFixed(1)} <span class="metric-unit">ms</span></div>
+                    </div>
+                  ` : '',
+                  vital.meanRri !== undefined && vital.meanRri !== null ? `
+                    <div class="metric">
+                      <div class="metric-label">Mean RRI</div>
+                      <div class="metric-value">${vital.meanRri.toFixed(1)} <span class="metric-unit">ms</span></div>
+                    </div>
+                  ` : '',
+                  vital.sd1 !== undefined && vital.sd1 !== null ? `
+                    <div class="metric">
+                      <div class="metric-label">SD1</div>
+                      <div class="metric-value">${vital.sd1.toFixed(2)}</div>
+                    </div>
+                  ` : '',
+                  vital.sd2 !== undefined && vital.sd2 !== null ? `
+                    <div class="metric">
+                      <div class="metric-label">SD2</div>
+                      <div class="metric-value">${vital.sd2.toFixed(2)}</div>
+                    </div>
+                  ` : '',
+                  vital.lfHf !== undefined && vital.lfHf !== null ? `
+                    <div class="metric">
+                      <div class="metric-label">LF/HF Ratio</div>
+                      <div class="metric-value">${vital.lfHf.toFixed(2)}</div>
                     </div>
                   ` : '',
                   vital.pnsIndex !== undefined && vital.pnsIndex !== null ? `
@@ -919,7 +978,13 @@ export default function ReportsPage() {
                   vital.wellnessIndex !== undefined && vital.wellnessIndex !== null ? `
                     <div class="metric">
                       <div class="metric-label">Wellness Index</div>
-                      <div class="metric-value">${vital.wellnessIndex.toFixed(1)} ${vital.wellnessLevel ? `<span class="wellness-badge">${vital.wellnessLevel}</span>` : ''}</div>
+                      <div class="metric-value">${vital.wellnessIndex.toFixed(1)}</div>
+                    </div>
+                  ` : '',
+                  vital.wellnessLevel ? `
+                    <div class="metric">
+                      <div class="metric-label">Wellness Level</div>
+                      <div class="metric-value"><span class="wellness-badge">${vital.wellnessLevel}</span></div>
                     </div>
                   ` : '',
                   vital.mspMatch !== undefined && vital.mspMatch !== null ? `
@@ -963,7 +1028,7 @@ export default function ReportsPage() {
           ` : ''}
 
           <!-- Risk Assessment -->
-          ${(vital.diabeticRisk || vital.hypertensionRisk || vital.heartAttackRisk || vital.strokeRisk || vital.asthmaRisk || vital.alzheimersRisk) ? `
+          ${(vital.diabeticRisk || vital.hypertensionRisk || vital.heartAttackRisk || vital.strokeRisk || vital.asthmaRisk || vital.alzheimersRisk || vital.ASCVDRiskLevel || vital.ascvdRisk || vital.highFastingGlucoseRisk || vital.highTotalCholesterolRisk || vital.lowHemoglobinRisk || vital.heartAge) ? `
             <div class="section">
               <h2>Health Risk Assessment</h2>
               ${[
@@ -977,6 +1042,42 @@ export default function ReportsPage() {
                   <div class="risk-assessment risk-${vital.hypertensionRisk.toLowerCase()}">
                     <strong>Hypertension Risk</strong>
                     <span>${vital.hypertensionRisk.toUpperCase()}${vital.hypertensionRiskProbability ? ` (${(vital.hypertensionRiskProbability * 100).toFixed(1)}%)` : ''}</span>
+                  </div>
+                ` : '',
+                vital.ASCVDRiskLevel ? `
+                  <div class="risk-assessment risk-${vital.ASCVDRiskLevel.toLowerCase()}">
+                    <strong>ASCVD Risk Level</strong>
+                    <span>${vital.ASCVDRiskLevel.toUpperCase()}</span>
+                  </div>
+                ` : '',
+                vital.ascvdRisk ? `
+                  <div class="risk-assessment risk-${vital.ascvdRisk.toLowerCase()}">
+                    <strong>ASCVD Risk</strong>
+                    <span>${vital.ascvdRisk.toUpperCase()}</span>
+                  </div>
+                ` : '',
+                vital.highFastingGlucoseRisk ? `
+                  <div class="risk-assessment risk-${vital.highFastingGlucoseRisk.toLowerCase()}">
+                    <strong>High Fasting Glucose Risk</strong>
+                    <span>${vital.highFastingGlucoseRisk.toUpperCase()}</span>
+                  </div>
+                ` : '',
+                vital.highTotalCholesterolRisk ? `
+                  <div class="risk-assessment risk-${vital.highTotalCholesterolRisk.toLowerCase()}">
+                    <strong>High Cholesterol Risk</strong>
+                    <span>${vital.highTotalCholesterolRisk.toUpperCase()}</span>
+                  </div>
+                ` : '',
+                vital.lowHemoglobinRisk ? `
+                  <div class="risk-assessment risk-${vital.lowHemoglobinRisk.toLowerCase()}">
+                    <strong>Low Hemoglobin Risk</strong>
+                    <span>${vital.lowHemoglobinRisk.toUpperCase()}</span>
+                  </div>
+                ` : '',
+                vital.heartAge ? `
+                  <div class="risk-assessment" style="background: #f3f4f6;">
+                    <strong>Heart Age</strong>
+                    <span>${vital.heartAge} years</span>
                   </div>
                 ` : '',
                 vital.heartAttackRisk ? `
