@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const vital = await prisma.vitals.findUnique({
       where: { id: scanId },
       include: {
-        patient: {
+        Patient: {
           select: {
             firstName: true,
             lastName: true,

@@ -46,7 +46,7 @@ export async function GET(request: Request) {
           userId: user.id,
         },
         include: {
-          patient: {
+          Patient: {
             select: {
               firstName: true,
               lastName: true,
@@ -87,10 +87,10 @@ export async function GET(request: Request) {
           scanId: vital.id,
           timestamp: vital.recordedAt,
           patient: {
-            name: `${vital.patient.firstName} ${vital.patient.lastName}`.trim(),
-            height: vital.patient.height,
-            weight: vital.patient.weight,
-            gender: vital.patient.gender,
+            name: `${vital.Patient.firstName} ${vital.Patient.lastName}`.trim(),
+            height: vital.Patient.height,
+            weight: vital.Patient.weight,
+            gender: vital.Patient.gender,
           },
           vitals: {
             // Basic vitals
@@ -155,7 +155,7 @@ export async function GET(request: Request) {
       orderBy: { recordedAt: 'desc' },
       take: limit,
       include: {
-        patient: {
+        Patient: {
           select: {
             firstName: true,
             lastName: true,
@@ -180,7 +180,7 @@ export async function GET(request: Request) {
         return {
           scanId: vital.id,
           timestamp: vital.recordedAt,
-          patientName: `${vital.patient.firstName} ${vital.patient.lastName}`.trim(),
+          patientName: `${vital.Patient.firstName} ${vital.Patient.lastName}`.trim(),
           vitals: {
             heartRate: vital.heartRate,
             bloodPressure: vital.bloodPressureSystolic && vital.bloodPressureDiastolic ? 

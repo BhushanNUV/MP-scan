@@ -74,6 +74,7 @@ export async function POST(request: Request) {
 
       const vitalRecord = await prisma.vitals.create({
         data: {
+          id: crypto.randomUUID(),
           patientId: newPatient.id,
           userId: user.id,
           recordedBy: deviceId || user.deviceId,
@@ -95,6 +96,7 @@ export async function POST(request: Request) {
 
     const vitalRecord = await prisma.vitals.create({
       data: {
+        id: crypto.randomUUID(),
         patientId: targetPatientId,
         userId: user.id,
         recordedBy: deviceId || user.deviceId,

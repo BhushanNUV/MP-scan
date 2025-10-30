@@ -203,11 +203,12 @@ export async function POST(request: Request) {
     // Create vitals record with all new fields
     const vital = await prisma.vitals.create({
       data: {
+        id: crypto.randomUUID(),
         patientId,
         userId: user.id,
         source: 'device',
         faceScanId,
-        
+
         // User Info
         name: name || null,
         phoneNumber: phoneNumber || null,
