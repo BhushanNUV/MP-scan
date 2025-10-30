@@ -147,6 +147,7 @@ export async function POST(request: Request) {
     if (!patientId) {
       const newPatient = await prisma.patient.create({
         data: {
+          id: crypto.randomUUID(),
           userId: user.id,
           firstName: user.name?.split(' ')[0] || 'User',
           lastName: user.name?.split(' ')[1] || '',
@@ -154,6 +155,7 @@ export async function POST(request: Request) {
           gender: gender || 'Not specified',
           height,
           weight,
+          updatedAt: new Date(),
         },
       });
       patientId = newPatient.id;
@@ -174,6 +176,7 @@ export async function POST(request: Request) {
     if (scanConfidence || scanImage) {
       const faceScan = await prisma.faceScan.create({
         data: {
+          id: crypto.randomUUID(),
           userId: user.id,
           confidence: scanConfidence,
           imageUrl: scanImage,

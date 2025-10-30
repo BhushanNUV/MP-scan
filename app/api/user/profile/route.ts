@@ -125,6 +125,7 @@ export async function PUT(request: NextRequest) {
       // Create new patient profile if required fields are provided
       patient = await prisma.patient.create({
         data: {
+          id: crypto.randomUUID(),
           userId: updatedUser.id,
           firstName: validatedData.firstName,
           lastName: validatedData.lastName,
@@ -138,6 +139,7 @@ export async function PUT(request: NextRequest) {
           emergencyContact: validatedData.emergencyContact,
           allergies: validatedData.allergies,
           medications: validatedData.medications,
+          updatedAt: new Date(),
         },
       });
     }
