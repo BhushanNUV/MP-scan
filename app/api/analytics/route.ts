@@ -167,7 +167,7 @@ export async function GET() {
       where: whereCondition,
       orderBy: { recordedAt: 'desc' },
       include: {
-        patient: {
+        Patient: {
           select: {
             firstName: true,
             lastName: true
