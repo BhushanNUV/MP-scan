@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -123,23 +124,50 @@ interface Vital {
 }
 
 export default function ReportsPage() {
+  const { data: session } = useSession();
   const [vitals, setVitals] = useState<Vital[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVital, setSelectedVital] = useState<Vital | null>(null);
   const [filterPeriod, setFilterPeriod] = useState('all');
 
+  // Check if BriahScan admin
+  const isBriahScanAdmin = session?.user?.email === 'briahscan@admin.com';
+
   useEffect(() => {
-    loadVitals();
-  }, []);
+    if (session) {
+      loadVitals();
+    }
+  }, [session]);
 
   const loadVitals = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/user/vitals');
+      // Check if this is BriahScan admin using session
+      const isBriahScanAdmin = session?.user?.email === 'briahscan@admin.com';
+
+      console.log('Session email:', session?.user?.email);
+      console.log('Is BriahScan Admin:', isBriahScanAdmin);
+
+      let response;
+      if (isBriahScanAdmin) {
+        // Fetch BriahScan data
+        console.log('Fetching BriahScan data...');
+        response = await fetch('/api/brain-scan?limit=100');
+      } else {
+        // Fetch regular vitals data
+        console.log('Fetching regular vitals data...');
+        response = await fetch('/api/user/vitals');
+      }
+
       if (response.ok) {
         const data = await response.json();
-        console.log('Loaded vitals data:', data.vitals?.length || 0, 'records');
-        setVitals(data.vitals || []);
+        if (isBriahScanAdmin) {
+          console.log('Loaded BriahScan data:', data.data?.length || 0, 'records');
+          setVitals(data.data || []);
+        } else {
+          console.log('Loaded vitals data:', data.vitals?.length || 0, 'records');
+          setVitals(data.vitals || []);
+        }
       } else {
         console.error('Failed to load reports:', response.status);
         toast.error('Failed to load reports');
@@ -181,8 +209,27 @@ export default function ReportsPage() {
     const tWaveDuration = 160 - (heartRate - 60) * 0.5;
     const tWaveDeflection = 0.2 + (stressLevelNum * 0.1);
 
-    // Generate ECG waveform data for SVG
-    const generateECGPath = () => {
+    // Generate ECG waveform data for SVG with lead-specific variations
+    const generateECGPath = (leadName: string = 'Lead II') => {
+      // Lead-specific amplitude multipliers
+      const leadConfigs: Record<string, { amplitude: number; invert: boolean }> = {
+        'Lead I': { amplitude: 1.0, invert: false },
+        'Lead II': { amplitude: 1.2, invert: false },
+        'Lead III': { amplitude: 0.8, invert: false },
+        'aVR': { amplitude: 0.5, invert: true },
+        'aVL': { amplitude: 0.6, invert: false },
+        'aVF': { amplitude: 1.1, invert: false },
+        'V1': { amplitude: 0.3, invert: false },
+        'V2': { amplitude: 0.8, invert: false },
+        'V3': { amplitude: 1.5, invert: false },
+        'V4': { amplitude: 2.0, invert: false },
+        'V5': { amplitude: 1.8, invert: false },
+        'V6': { amplitude: 1.2, invert: false }
+      };
+      
+      const leadConfig = leadConfigs[leadName] || { amplitude: 1.0, invert: false };
+      
+    const generateECGPathBase = () => {
       const duration = 3; // 3 seconds of ECG
       const sampleRate = 250; // samples per second
       const totalSamples = duration * sampleRate;
@@ -278,6 +325,40 @@ export default function ReportsPage() {
       
       return points.join(' ');
     };
+    
+    // Generate the base path and apply lead-specific transformations
+    const basePath = generateECGPathBase();
+    
+    // Apply lead-specific amplitude and inversion
+    if (leadConfig.invert) {
+      // For inverted leads like aVR, flip the waveform
+      return basePath.replace(/(\d+\.?\d*)/g, (match, p1, offset, string) => {
+        // Only transform y-coordinates (every second number after M or L)
+        const prevChar = string[offset - 2];
+        if (prevChar === ' ' || prevChar === 'L' || prevChar === 'M') {
+          return p1; // This is an x-coordinate, don't transform
+        } else {
+          // This is a y-coordinate, invert it
+          const y = parseFloat(p1);
+          const inverted = 150 + (150 - y) * leadConfig.amplitude;
+          return inverted.toFixed(2);
+        }
+      });
+    } else {
+      // Apply amplitude scaling
+      return basePath.replace(/(\d+\.?\d*)/g, (match, p1, offset, string) => {
+        const prevChar = string[offset - 2];
+        if (prevChar === ' ' || prevChar === 'L' || prevChar === 'M') {
+          return p1; // x-coordinate
+        } else {
+          // y-coordinate with amplitude scaling
+          const y = parseFloat(p1);
+          const scaled = 150 + (y - 150) * leadConfig.amplitude;
+          return scaled.toFixed(2);
+        }
+      });
+    }
+    };
 
     // Generate the print content
     const printContent = `
@@ -286,20 +367,85 @@ export default function ReportsPage() {
         <head>
           <title>Health Report - ${vital.name || 'Patient'}</title>
           <style>
-            @media print {
-              body { margin: 0; }
-              .no-print { display: none; }
-              @page { margin: 0.5in; }
-              svg { page-break-inside: avoid; }
-              .ecg-section { page-break-inside: avoid; }
+            /* A4 Paper Size Settings */
+            @page {
+              size: A4;
+              margin: 15mm 10mm 15mm 10mm;
             }
+            
+            @media print {
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
+              
+              body { 
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+              }
+              
+              .no-print { display: none !important; }
+              
+              /* Page break controls */
+              .page-break { page-break-after: always; }
+              .avoid-break { page-break-inside: avoid; }
+              
+              /* Ensure ECG sections don't break */
+              .ecg-section { 
+                page-break-inside: avoid;
+                break-inside: avoid;
+              }
+              
+              .section {
+                page-break-inside: avoid;
+                break-inside: avoid;
+              }
+              
+              /* Adjust font sizes for print */
+              .header h1 { font-size: 24px !important; }
+              .section h2 { font-size: 18px !important; }
+              .metric-value { font-size: 16px !important; }
+              .metric-label { font-size: 10px !important; }
+              
+              /* Ensure grids fit properly */
+              .metrics-grid {
+                grid-template-columns: repeat(3, 1fr) !important;
+              }
+              
+              /* ECG grid adjustments for A4 */
+              .ecg-leads-grid {
+                page-break-inside: avoid;
+              }
+            }
+            
+            /* Screen and Print Styles */
             body {
-              font-family: 'Segoe UI', Arial, sans-serif;
+              font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
               line-height: 1.6;
               color: #333;
-              max-width: 1000px;
+              margin: 0;
+              padding: 0;
+              background: white;
+            }
+            
+            /* A4 Container */
+            .report-container {
+              width: 210mm;
+              min-height: 297mm;
               margin: 0 auto;
-              padding: 20px;
+              padding: 15mm 10mm;
+              background: white;
+              box-sizing: border-box;
+            }
+            
+            @media screen {
+              .report-container {
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                margin: 20px auto;
+              }
             }
             .header {
               text-align: center;
@@ -336,9 +482,21 @@ export default function ReportsPage() {
             }
             .metrics-grid {
               display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-              gap: 15px;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 12px;
               margin-bottom: 20px;
+            }
+            
+            @media screen and (max-width: 768px) {
+              .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+              }
+            }
+            
+            @media screen and (max-width: 480px) {
+              .metrics-grid {
+                grid-template-columns: 1fr;
+              }
             }
             .metric {
               padding: 15px;
@@ -365,20 +523,80 @@ export default function ReportsPage() {
             }
             .ecg-section {
               background: #f3f4f6;
-              padding: 20px;
+              padding: 15px;
               border-radius: 8px;
-              margin-bottom: 25px;
+              margin-bottom: 20px;
+              page-break-inside: avoid;
             }
+            
+            .ecg-leads-container {
+              width: 100%;
+              max-width: 190mm;
+              margin: 0 auto;
+            }
+            
+            .ecg-lead-row {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 8px;
+              margin-bottom: 8px;
+            }
+            
+            .ecg-lead-item {
+              background: #1a1a1a;
+              border-radius: 4px;
+              padding: 8px;
+              box-sizing: border-box;
+            }
+            
+            .ecg-lead-item svg {
+              width: 100%;
+              height: auto;
+              display: block;
+            }
+            
+            @media print {
+              .ecg-lead-row {
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 5px !important;
+              }
+              
+              .ecg-lead-item {
+                padding: 5px !important;
+              }
+              
+              /* Ensure V1-V6 leads print in 2 rows of 3 */
+              .ecg-precordial-leads {
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 5px !important;
+              }
+            }
+            
             .ecg-title {
               color: #1e40af;
               font-size: 18px;
               margin-bottom: 15px;
               font-weight: 600;
             }
+            
             .ecg-note {
               color: #6b7280;
-              font-size: 12px;
+              font-size: 11px;
               font-style: italic;
+            }
+            
+            .ecg-rhythm-strip {
+              width: 100%;
+              margin-top: 10px;
+              background: #1a1a1a;
+              border-radius: 4px;
+              padding: 8px;
+            }
+            
+            .ecg-rhythm-strip svg {
+              width: 100%;
+              height: auto;
             }
             .risk-assessment {
               padding: 12px 16px;
@@ -435,6 +653,7 @@ export default function ReportsPage() {
           </style>
         </head>
         <body>
+          <div class="report-container">
           <div class="header">
             <h1>Comprehensive Health Report</h1>
             <p style="margin: 5px 0;">Generated on ${new Date().toLocaleDateString('en-US', { 
@@ -464,28 +683,102 @@ export default function ReportsPage() {
             <div class="ecg-section">
               <div class="ecg-note">ECG waveform analysis based on vital parameters</div>
               
-              <!-- ECG Waveform Graph -->
-              <div style="background: #1a1a1a; border-radius: 8px; padding: 20px; margin: 15px 0;">
-                <svg width="100%" height="300" viewBox="0 0 800 300" style="display: block;">
-                  <!-- Grid Background -->
-                  <defs>
-                    <pattern id="smallGrid" width="10" height="10" patternUnits="userSpaceOnUse">
-                      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255, 182, 193, 0.2)" stroke-width="0.5"/>
-                    </pattern>
-                    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                      <rect width="50" height="50" fill="url(#smallGrid)"/>
-                      <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(255, 182, 193, 0.4)" stroke-width="1"/>
-                    </pattern>
-                  </defs>
-                  <rect width="800" height="300" fill="url(#grid)" />
-                  
-                  <!-- ECG Waveform -->
-                  <path d="${generateECGPath()}" fill="none" stroke="#00ff00" stroke-width="2"/>
-                  
-                  <!-- Labels -->
-                  <text x="10" y="20" fill="#00ff00" font-size="12" font-family="monospace">Lead II</text>
-                  <text x="10" y="290" fill="#00ff00" font-size="10" font-family="monospace">25mm/s 10mm/mV</text>
-                </svg>
+              <!-- 12-Lead ECG Display -->
+              <div class="ecg-leads-container" style="background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin: 15px 0;">
+                <h3 class="ecg-title" style="margin: 0 0 10px 0;">12-Lead ECG Recording</h3>
+                
+                <!-- Standard Limb Leads (I, II, III) -->
+                <div class="ecg-lead-row">
+                  ${['Lead I', 'Lead II', 'Lead III'].map(lead => `
+                    <div style="background: #1a1a1a; border-radius: 4px; padding: 10px;">
+                      <svg width="100%" height="100" viewBox="0 0 250 100" style="display: block;">
+                        <defs>
+                          <pattern id="smallGrid${lead.replace(' ', '')}" width="5" height="5" patternUnits="userSpaceOnUse">
+                            <path d="M 5 0 L 0 0 0 5" fill="none" stroke="rgba(255, 182, 193, 0.15)" stroke-width="0.3"/>
+                          </pattern>
+                          <pattern id="grid${lead.replace(' ', '')}" width="25" height="25" patternUnits="userSpaceOnUse">
+                            <rect width="25" height="25" fill="url(#smallGrid${lead.replace(' ', '')})" />
+                            <path d="M 25 0 L 0 0 0 25" fill="none" stroke="rgba(255, 182, 193, 0.3)" stroke-width="0.5"/>
+                          </pattern>
+                        </defs>
+                        <rect width="250" height="100" fill="url(#grid${lead.replace(' ', '')})" />
+                        <path d="${generateECGPath(lead)}" fill="none" stroke="#00ff00" stroke-width="1.5" transform="scale(0.3125, 0.333)"/>
+                        <text x="5" y="12" fill="#00ff00" font-size="10" font-family="monospace">${lead}</text>
+                      </svg>
+                    </div>
+                  `).join('')}
+                </div>
+                
+                <!-- Augmented Limb Leads (aVR, aVL, aVF) -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+                  ${['aVR', 'aVL', 'aVF'].map(lead => `
+                    <div style="background: #1a1a1a; border-radius: 4px; padding: 10px;">
+                      <svg width="100%" height="100" viewBox="0 0 250 100" style="display: block;">
+                        <defs>
+                          <pattern id="smallGrid${lead}" width="5" height="5" patternUnits="userSpaceOnUse">
+                            <path d="M 5 0 L 0 0 0 5" fill="none" stroke="rgba(255, 182, 193, 0.15)" stroke-width="0.3"/>
+                          </pattern>
+                          <pattern id="grid${lead}" width="25" height="25" patternUnits="userSpaceOnUse">
+                            <rect width="25" height="25" fill="url(#smallGrid${lead})" />
+                            <path d="M 25 0 L 0 0 0 25" fill="none" stroke="rgba(255, 182, 193, 0.3)" stroke-width="0.5"/>
+                          </pattern>
+                        </defs>
+                        <rect width="250" height="100" fill="url(#grid${lead})" />
+                        <path d="${generateECGPath(lead)}" fill="none" stroke="#00ff00" stroke-width="1.5" transform="scale(0.3125, 0.333)"/>
+                        <text x="5" y="12" fill="#00ff00" font-size="10" font-family="monospace">${lead}</text>
+                      </svg>
+                    </div>
+                  `).join('')}
+                </div>
+                
+                <!-- Precordial Leads (V1-V6) -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                  ${['V1', 'V2', 'V3', 'V4', 'V5', 'V6'].map(lead => `
+                    <div style="background: #1a1a1a; border-radius: 4px; padding: 10px;">
+                      <svg width="100%" height="100" viewBox="0 0 250 100" style="display: block;">
+                        <defs>
+                          <pattern id="smallGrid${lead}" width="5" height="5" patternUnits="userSpaceOnUse">
+                            <path d="M 5 0 L 0 0 0 5" fill="none" stroke="rgba(255, 182, 193, 0.15)" stroke-width="0.3"/>
+                          </pattern>
+                          <pattern id="grid${lead}" width="25" height="25" patternUnits="userSpaceOnUse">
+                            <rect width="25" height="25" fill="url(#smallGrid${lead})" />
+                            <path d="M 25 0 L 0 0 0 25" fill="none" stroke="rgba(255, 182, 193, 0.3)" stroke-width="0.5"/>
+                          </pattern>
+                        </defs>
+                        <rect width="250" height="100" fill="url(#grid${lead})" />
+                        <path d="${generateECGPath(lead)}" fill="none" stroke="#00ff00" stroke-width="1.5" transform="scale(0.3125, 0.333)"/>
+                        <text x="5" y="12" fill="#00ff00" font-size="10" font-family="monospace">${lead}</text>
+                      </svg>
+                    </div>
+                  `).join('')}
+                </div>
+                
+                <!-- Rhythm Strip (Lead II - Extended) -->
+                <div style="margin-top: 15px;">
+                  <h4 style="margin: 10px 0 5px 0; color: #374151; font-size: 14px;">Rhythm Strip (Lead II)</h4>
+                  <div style="background: #1a1a1a; border-radius: 4px; padding: 10px;">
+                    <svg width="100%" height="120" viewBox="0 0 800 120" style="display: block;">
+                      <defs>
+                        <pattern id="smallGridRhythm" width="5" height="5" patternUnits="userSpaceOnUse">
+                          <path d="M 5 0 L 0 0 0 5" fill="none" stroke="rgba(255, 182, 193, 0.15)" stroke-width="0.3"/>
+                        </pattern>
+                        <pattern id="gridRhythm" width="25" height="25" patternUnits="userSpaceOnUse">
+                          <rect width="25" height="25" fill="url(#smallGridRhythm)" />
+                          <path d="M 25 0 L 0 0 0 25" fill="none" stroke="rgba(255, 182, 193, 0.3)" stroke-width="0.5"/>
+                        </pattern>
+                      </defs>
+                      <rect width="800" height="120" fill="url(#gridRhythm)" />
+                      <path d="${generateECGPath('Lead II')}" fill="none" stroke="#00ff00" stroke-width="2" transform="scale(1, 0.4) translate(0, 75)"/>
+                      <text x="10" y="15" fill="#00ff00" font-size="11" font-family="monospace">Lead II - Rhythm</text>
+                      <text x="10" y="110" fill="#00ff00" font-size="9" font-family="monospace">25mm/s 10mm/mV</text>
+                    </svg>
+                  </div>
+                </div>
+                
+                <!-- ECG Speed and Gain Settings -->
+                <div style="margin-top: 10px; padding: 10px; background: #f9fafb; border-radius: 4px; font-size: 12px; color: #6b7280;">
+                  <strong>Recording Settings:</strong> Paper Speed: 25 mm/s | Gain: 10 mm/mV | Filter: 0.05-150 Hz
+                </div>
               </div>
               
               <div class="metrics-grid" style="margin-top: 15px;">
@@ -729,6 +1022,7 @@ export default function ReportsPage() {
             <p>Please consult with a qualified healthcare professional for proper medical diagnosis and treatment.</p>
             <p style="margin-top: 15px;">© ${new Date().getFullYear()} Health Monitoring System | Generated with Advanced AI Analysis</p>
           </div>
+          </div>
         </body>
       </html>
     `;
@@ -909,8 +1203,8 @@ export default function ReportsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Phone</TableHead>
+                  {!isBriahScanAdmin && <TableHead>Name</TableHead>}
+                  {!isBriahScanAdmin && <TableHead>Phone</TableHead>}
                   <TableHead>
                     <div className="flex items-center gap-1">
                       <Heart className="h-4 w-4" />
@@ -935,7 +1229,7 @@ export default function ReportsPage() {
               <TableBody>
                 {filteredVitals.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8">
+                    <TableCell colSpan={isBriahScanAdmin ? 9 : 11} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
                         <FileText className="h-8 w-8 text-muted-foreground" />
                         <p className="text-muted-foreground">No reports found</p>
@@ -947,12 +1241,16 @@ export default function ReportsPage() {
                     const status = getHealthStatus(vital);
                     return (
                       <TableRow key={vital.id}>
-                        <TableCell>
-                          {vital.name || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {vital.phoneNumber || '-'}
-                        </TableCell>
+                        {!isBriahScanAdmin && (
+                          <TableCell>
+                            {vital.name || '-'}
+                          </TableCell>
+                        )}
+                        {!isBriahScanAdmin && (
+                          <TableCell>
+                            {vital.phoneNumber || '-'}
+                          </TableCell>
+                        )}
                         <TableCell>
                           {vital.heartRate ? (
                             <div className="flex items-center gap-1">

@@ -34,44 +34,92 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (session) {
+      loadDashboardData();
+    }
+  }, [session]);
 
   const loadDashboardData = async () => {
     setIsLoading(true);
     try {
-      const [vitalsResponse, analyticsResponse] = await Promise.all([
-        fetchLatestVitals(),
-        fetch('/api/analytics')
-          .then(res => {
-            if (!res.ok) {
-              console.error('Analytics API failed with status:', res.status);
-              return { success: false };
-            }
-            return res.json();
-          })
+      // Check if this is BriahScan admin
+      const isBriahScanAdmin = session?.user?.email === 'briahscan@admin.com';
+
+      if (isBriahScanAdmin) {
+        // Fetch BriahScan data
+        const briahScanResponse = await fetch('/api/briah-scan/analytics')
+          .then(res => res.json())
           .catch(err => {
-            console.error('Analytics API error:', err);
+            console.error('BriahScan Analytics API error:', err);
             return { success: false };
-          })
-      ]);
-      
-      setLatestVitals(vitalsResponse?.data);
-      
-      if (analyticsResponse?.success) {
-        setAnalytics(analyticsResponse.analytics);
+          });
+
+        const briahScansData = await fetch('/api/brain-scan?limit=10')
+          .then(res => res.json())
+          .catch(() => ({ success: false, data: [] }));
+
+        if (briahScanResponse?.success) {
+          const briahAnalytics = briahScanResponse.analytics;
+          // Transform BriahScan analytics to match dashboard format
+          setAnalytics({
+            totals: {
+              users: 0,
+              patients: 0,
+              vitals: briahAnalytics.totals.scans,
+              faceScans: 0
+            },
+            vitalsTimeline: {
+              today: briahAnalytics.timeline.today,
+              thisWeek: briahAnalytics.timeline.thisWeek,
+              thisMonth: briahAnalytics.timeline.thisMonth,
+              weeklyTrend: briahAnalytics.timeline.weeklyTrend
+            },
+            averages: briahAnalytics.averages,
+            riskAssessment: null,
+            sources: briahAnalytics.sources,
+            latest: briahAnalytics.latestScan,
+            healthScore: briahAnalytics.healthScore,
+            userRole: 'admin',
+            isBriahScan: true
+          });
+
+          setLatestVitals(briahAnalytics.latestScan);
+        }
       } else {
-        // Set default analytics if API fails
-        setAnalytics({
-          totals: { users: 0, patients: 0, vitals: 0, faceScans: 0 },
-          vitalsTimeline: { today: 0, thisWeek: 0, thisMonth: 0, weeklyTrend: '0' },
-          averages: {},
-          riskAssessment: null,
-          sources: { device: 0, manual: 0, import: 0 },
-          latest: null,
-          healthScore: 0,
-          userRole: 'user'
-        });
+        // Original vitals data loading
+        const [vitalsResponse, analyticsResponse] = await Promise.all([
+          fetchLatestVitals(),
+          fetch('/api/analytics')
+            .then(res => {
+              if (!res.ok) {
+                console.error('Analytics API failed with status:', res.status);
+                return { success: false };
+              }
+              return res.json();
+            })
+            .catch(err => {
+              console.error('Analytics API error:', err);
+              return { success: false };
+            })
+        ]);
+
+        setLatestVitals(vitalsResponse?.data);
+
+        if (analyticsResponse?.success) {
+          setAnalytics(analyticsResponse.analytics);
+        } else {
+          // Set default analytics if API fails
+          setAnalytics({
+            totals: { users: 0, patients: 0, vitals: 0, faceScans: 0 },
+            vitalsTimeline: { today: 0, thisWeek: 0, thisMonth: 0, weeklyTrend: '0' },
+            averages: {},
+            riskAssessment: null,
+            sources: { device: 0, manual: 0, import: 0 },
+            latest: null,
+            healthScore: 0,
+            userRole: 'user'
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -105,7 +153,46 @@ export default function DashboardPage() {
     return 'Needs Attention';
   };
 
-  const stats = [
+  // Check if BriahScan admin
+  const isBriahScanAdmin = session?.user?.email === 'briahscan@admin.com';
+
+  // Different stats for BriahScan admin
+  const stats = isBriahScanAdmin ? [
+    {
+      title: 'Total Scans',
+      value: analytics?.totals?.vitals || 0,
+      change: `${analytics?.vitalsTimeline?.weeklyTrend || 0}%`,
+      icon: Activity,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100',
+    },
+    {
+      title: 'Scans Today',
+      value: analytics?.vitalsTimeline?.today || 0,
+      change: analytics?.vitalsTimeline?.today > 0 ? '+' + analytics?.vitalsTimeline?.today : '0',
+      icon: Calendar,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100',
+    },
+    {
+      title: 'Avg Heart Rate',
+      value: analytics?.averages?.heartRate ? `${Math.round(analytics.averages.heartRate)}` : '--',
+      change: analytics?.averages?.heartRate ? 'bpm' : '',
+      icon: Heart,
+      color: 'text-red-600',
+      bgColor: 'bg-red-100',
+    },
+    {
+      title: 'Avg Blood Pressure',
+      value: (analytics?.averages?.bloodPressureSystolic && analytics?.averages?.bloodPressureDiastolic)
+        ? `${Math.round(analytics.averages.bloodPressureSystolic)}/${Math.round(analytics.averages.bloodPressureDiastolic)}`
+        : '--',
+      change: 'mmHg',
+      icon: Activity,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100',
+    },
+  ] : [
     {
       title: analytics?.userRole === 'admin' ? 'Total Users' : 'Total Patients',
       value: analytics?.totals?.patients || 0,

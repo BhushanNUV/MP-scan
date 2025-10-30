@@ -31,6 +31,6 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ vitals: formattedVitals });
   } catch (error) {
-    return handleApiError(error);
+    return handleApiError(error as { message?: string; name?: string; code?: string; errors?: unknown[] });
   }
 }

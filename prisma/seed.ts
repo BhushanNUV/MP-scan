@@ -180,7 +180,33 @@ async function main() {
     console.log('✅ Sample vitals created for device user');
   }
 
-  console.log('🎉 Database seed completed successfully!');
+  // Create BriahScan Admin user
+  const briahScanAdminPassword = await bcrypt.hash('briahscan123', 10);
+  const briahScanAdmin = await prisma.user.upsert({
+    where: { email: 'briahscan@admin.com' },
+    update: {},
+    create: {
+      email: 'briahscan@admin.com',
+      name: 'BriahScan Admin',
+      password: briahScanAdminPassword,
+      role: 'admin',
+      emailVerified: new Date(),
+      profile: {
+        create: {
+          firstName: 'BriahScan',
+          lastName: 'Administrator',
+          dateOfBirth: new Date('1980-01-01'),
+          gender: 'Admin',
+        },
+      },
+      settings: {
+        create: {},
+      },
+    },
+  });
+  console.log('✅ BriahScan Admin user created:', briahScanAdmin.email);
+
+  console.log('\n🎉 Database seed completed successfully!');
   console.log('\n📱 Android Device Login Credentials:');
   console.log('   Email: device@example.com');
   console.log('   Password: device123');
@@ -190,6 +216,10 @@ async function main() {
   console.log('\n👥 Regular User Login:');
   console.log('   Email: user@example.com');
   console.log('   Password: user123');
+  console.log('\n🧠 BriahScan Admin Login:');
+  console.log('   Email: briahscan@admin.com');
+  console.log('   Password: briahscan123');
+  console.log('   (Views BriahScan data only)');
 }
 
 main()

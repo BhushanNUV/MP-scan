@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    return handleApiError(error);
+    return handleApiError(error as { message?: string; name?: string; code?: string; errors?: unknown[] });
   }
 }
 

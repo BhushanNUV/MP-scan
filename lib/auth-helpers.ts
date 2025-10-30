@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 export async function getAuthUser() {
   const session = await getServerSession(authOptions);
@@ -22,7 +22,14 @@ export async function requireAuth() {
   return user;
 }
 
-export function handleApiError(error: any) {
+interface ApiError {
+  message?: string;
+  name?: string;
+  code?: string;
+  errors?: unknown[];
+}
+
+export function handleApiError(error: ApiError) {
   console.error('API Error:', error);
   
   if (error.message === 'Unauthorized') {
