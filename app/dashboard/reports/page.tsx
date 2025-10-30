@@ -106,12 +106,20 @@ interface Vital {
   heartAge?: string;
   asthmaRisk?: string;
   alzheimersRisk?: string;
-  
+
   // Blood Metrics
   hemoglobin?: number;
   hemoglobinA1c?: number;
   hba1c?: number;
-  
+
+  // Cardiovascular Metrics (BriahScan only)
+  cardiacWorkload?: number;
+  pulsePressure?: number;
+  meanArterialPressure?: number;
+
+  // Wellness & Risk Levels (BriahScan only)
+  ASCVDRiskLevel?: string;
+
   // Additional
   bmi?: number;
   mspMatch?: number;
