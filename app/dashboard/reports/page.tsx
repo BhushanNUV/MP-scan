@@ -1591,28 +1591,28 @@ export default function ReportsPage() {
               </div>
 
               {/* Cardiovascular Metrics (BriahScan) */}
-              {(selectedVital.cardiacWorkload !== undefined && selectedVital.cardiacWorkload !== null ||
-                selectedVital.pulsePressure !== undefined && selectedVital.pulsePressure !== null ||
-                selectedVital.meanArterialPressure !== undefined && selectedVital.meanArterialPressure !== null) && (
+              {(selectedVital.cardiacWorkload !== undefined && selectedVital.cardiacWorkload !== null && selectedVital.cardiacWorkload !== 0 ||
+                selectedVital.pulsePressure !== undefined && selectedVital.pulsePressure !== null && selectedVital.pulsePressure !== 0 ||
+                selectedVital.meanArterialPressure !== undefined && selectedVital.meanArterialPressure !== null && selectedVital.meanArterialPressure !== 0) && (
                 <div>
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Activity className="h-5 w-5" />
                     Cardiovascular Metrics
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {selectedVital.cardiacWorkload !== undefined && selectedVital.cardiacWorkload !== null && (
+                    {selectedVital.cardiacWorkload !== undefined && selectedVital.cardiacWorkload !== null && selectedVital.cardiacWorkload !== 0 && (
                       <div className="p-3 border rounded-lg">
                         <p className="text-xs text-muted-foreground">Cardiac Workload</p>
                         <p className="text-xl font-bold">{selectedVital.cardiacWorkload.toFixed(1)}</p>
                       </div>
                     )}
-                    {selectedVital.pulsePressure !== undefined && selectedVital.pulsePressure !== null && (
+                    {selectedVital.pulsePressure !== undefined && selectedVital.pulsePressure !== null && selectedVital.pulsePressure !== 0 && (
                       <div className="p-3 border rounded-lg">
                         <p className="text-xs text-muted-foreground">Pulse Pressure</p>
                         <p className="text-xl font-bold">{selectedVital.pulsePressure} mmHg</p>
                       </div>
                     )}
-                    {selectedVital.meanArterialPressure !== undefined && selectedVital.meanArterialPressure !== null && (
+                    {selectedVital.meanArterialPressure !== undefined && selectedVital.meanArterialPressure !== null && selectedVital.meanArterialPressure !== 0 && (
                       <div className="p-3 border rounded-lg">
                         <p className="text-xs text-muted-foreground">Mean Arterial Pressure</p>
                         <p className="text-xl font-bold">{selectedVital.meanArterialPressure.toFixed(1)} mmHg</p>
@@ -1639,7 +1639,7 @@ export default function ReportsPage() {
                       </p>
                     </div>
                   )}
-                  {selectedVital.stressIndex !== undefined && selectedVital.stressIndex !== null && (
+                  {selectedVital.stressIndex !== undefined && selectedVital.stressIndex !== null && selectedVital.stressIndex !== 0 && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">Stress Index</p>
                       <p className="text-xl font-bold">{selectedVital.stressIndex.toFixed(1)}</p>
@@ -1657,7 +1657,7 @@ export default function ReportsPage() {
                       <p className="text-xl font-bold">{selectedVital.recoveryAbility}</p>
                     </div>
                   )}
-                  {selectedVital.hrvSdnn !== undefined && selectedVital.hrvSdnn !== null && (
+                  {selectedVital.hrvSdnn !== undefined && selectedVital.hrvSdnn !== null && selectedVital.hrvSdnn !== 0 && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">HRV SDNN</p>
                       <p className="text-xl font-bold">{selectedVital.hrvSdnn.toFixed(1)}ms</p>
@@ -1666,7 +1666,7 @@ export default function ReportsPage() {
                       )}
                     </div>
                   )}
-                  {selectedVital.pnsIndex !== undefined && selectedVital.pnsIndex !== null && (
+                  {selectedVital.pnsIndex !== undefined && selectedVital.pnsIndex !== null && selectedVital.pnsIndex !== 0 && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">PNS Index</p>
                       <p className="text-xl font-bold">{selectedVital.pnsIndex.toFixed(2)}</p>
@@ -1675,7 +1675,7 @@ export default function ReportsPage() {
                       )}
                     </div>
                   )}
-                  {selectedVital.snsIndex !== undefined && selectedVital.snsIndex !== null && (
+                  {selectedVital.snsIndex !== undefined && selectedVital.snsIndex !== null && selectedVital.snsIndex !== 0 && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">SNS Index</p>
                       <p className="text-xl font-bold">{selectedVital.snsIndex.toFixed(2)}</p>
@@ -1684,37 +1684,37 @@ export default function ReportsPage() {
                       )}
                     </div>
                   )}
-                  {selectedVital.rmssd !== undefined && selectedVital.rmssd !== null && (
+                  {selectedVital.rmssd !== undefined && selectedVital.rmssd !== null && selectedVital.rmssd !== 0 && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">RMSSD</p>
                       <p className="text-xl font-bold">{selectedVital.rmssd.toFixed(1)}ms</p>
                     </div>
                   )}
-                  {selectedVital.sd1 !== undefined && selectedVital.sd1 !== null && (
+                  {selectedVital.sd1 !== undefined && selectedVital.sd1 !== null && selectedVital.sd1 !== 0 && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">SD1</p>
                       <p className="text-xl font-bold">{selectedVital.sd1.toFixed(1)}ms</p>
                     </div>
                   )}
-                  {selectedVital.sd2 !== undefined && selectedVital.sd2 !== null && (
+                  {selectedVital.sd2 !== undefined && selectedVital.sd2 !== null && selectedVital.sd2 !== 0 && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">SD2</p>
                       <p className="text-xl font-bold">{selectedVital.sd2.toFixed(1)}ms</p>
                     </div>
                   )}
-                  {selectedVital.meanRri !== undefined && selectedVital.meanRri !== null && (
+                  {selectedVital.meanRri !== undefined && selectedVital.meanRri !== null && selectedVital.meanRri !== 0 && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">Mean RRI</p>
                       <p className="text-xl font-bold">{selectedVital.meanRri.toFixed(0)}ms</p>
                     </div>
                   )}
-                  {selectedVital.lfHf !== undefined && selectedVital.lfHf !== null && (
+                  {selectedVital.lfHf !== undefined && selectedVital.lfHf !== null && selectedVital.lfHf !== 0 && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">LF/HF Ratio</p>
                       <p className="text-xl font-bold">{selectedVital.lfHf.toFixed(3)}</p>
                     </div>
                   )}
-                  {selectedVital.wellnessIndex !== undefined && selectedVital.wellnessIndex !== null && (
+                  {selectedVital.wellnessIndex !== undefined && selectedVital.wellnessIndex !== null && selectedVital.wellnessIndex !== 0 && (
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">Wellness Index</p>
                       <p className="text-xl font-bold">{selectedVital.wellnessIndex.toFixed(1)}</p>
