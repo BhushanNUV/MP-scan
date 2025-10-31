@@ -920,7 +920,7 @@ export default function ReportsPage() {
           ` : ''}
 
           <!-- Stress & HRV Analysis -->
-          ${(vital.hrvSdnn || vital.stressLevel !== undefined || vital.pnsIndex || vital.snsIndex || vital.wellnessIndex || vital.wellnessLevel || vital.mspMatch || vital.meanRri || vital.rmssd || vital.sd1 || vital.sd2 || vital.lfHf) ? `
+          ${(vital.hrvSdnn || vital.stressLevel !== undefined || vital.stressIndex !== undefined || vital.pnsIndex || vital.snsIndex || vital.wellnessIndex || vital.wellnessLevel || vital.mspMatch || vital.meanRri || vital.rmssd || vital.sd1 || vital.sd2 || vital.lfHf) ? `
             <div class="section">
               <h2>Stress & HRV Analysis</h2>
               <div class="metrics-grid">
@@ -933,6 +933,12 @@ export default function ReportsPage() {
                           ? (vital.stressLevel * 100).toFixed(0) + '%'
                           : vital.stressLevel
                       }</div>
+                    </div>
+                  ` : '',
+                  vital.stressIndex !== undefined && vital.stressIndex !== null ? `
+                    <div class="metric">
+                      <div class="metric-label">Stress Index</div>
+                      <div class="metric-value">${vital.stressIndex.toFixed(1)}</div>
                     </div>
                   ` : '',
                   vital.hrvSdnn !== undefined && vital.hrvSdnn !== null ? `
@@ -1481,8 +1487,8 @@ export default function ReportsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* ECG Analysis */}
-              <ECGChart vital={selectedVital} />
+              {/* ECG Analysis - Hidden for BriahScan Admin */}
+              {!isBriahScanAdmin && <ECGChart vital={selectedVital} />}
 
               {/* Patient Information */}
               {(selectedVital.name || selectedVital.phoneNumber || selectedVital.notes) && (
@@ -1584,6 +1590,38 @@ export default function ReportsPage() {
                 </div>
               </div>
 
+              {/* Cardiovascular Metrics (BriahScan) */}
+              {(selectedVital.cardiacWorkload !== undefined && selectedVital.cardiacWorkload !== null ||
+                selectedVital.pulsePressure !== undefined && selectedVital.pulsePressure !== null ||
+                selectedVital.meanArterialPressure !== undefined && selectedVital.meanArterialPressure !== null) && (
+                <div>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Activity className="h-5 w-5" />
+                    Cardiovascular Metrics
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {selectedVital.cardiacWorkload !== undefined && selectedVital.cardiacWorkload !== null && (
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-xs text-muted-foreground">Cardiac Workload</p>
+                        <p className="text-xl font-bold">{selectedVital.cardiacWorkload.toFixed(1)}</p>
+                      </div>
+                    )}
+                    {selectedVital.pulsePressure !== undefined && selectedVital.pulsePressure !== null && (
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-xs text-muted-foreground">Pulse Pressure</p>
+                        <p className="text-xl font-bold">{selectedVital.pulsePressure} mmHg</p>
+                      </div>
+                    )}
+                    {selectedVital.meanArterialPressure !== undefined && selectedVital.meanArterialPressure !== null && (
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-xs text-muted-foreground">Mean Arterial Pressure</p>
+                        <p className="text-xl font-bold">{selectedVital.meanArterialPressure.toFixed(1)} mmHg</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Stress & HRV Metrics */}
               <div>
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -1595,10 +1633,16 @@ export default function ReportsPage() {
                     <div className="p-3 border rounded-lg">
                       <p className="text-xs text-muted-foreground">Stress Level</p>
                       <p className="text-xl font-bold">
-                        {typeof selectedVital.stressLevel === 'number' 
-                          ? `${(selectedVital.stressLevel * 100).toFixed(0)}%` 
+                        {typeof selectedVital.stressLevel === 'number'
+                          ? `${(selectedVital.stressLevel * 100).toFixed(0)}%`
                           : selectedVital.stressLevel}
                       </p>
+                    </div>
+                  )}
+                  {selectedVital.stressIndex !== undefined && selectedVital.stressIndex !== null && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">Stress Index</p>
+                      <p className="text-xl font-bold">{selectedVital.stressIndex.toFixed(1)}</p>
                     </div>
                   )}
                   {selectedVital.stressResponse && (
@@ -1811,6 +1855,14 @@ export default function ReportsPage() {
                       <p className="text-xs text-muted-foreground">ASCVD Risk</p>
                       <p className={`font-semibold ${getRiskColor(selectedVital.ascvdRisk)}`}>
                         {selectedVital.ascvdRisk}
+                      </p>
+                    </div>
+                  )}
+                  {selectedVital.ASCVDRiskLevel && (
+                    <div className="p-3 border rounded-lg">
+                      <p className="text-xs text-muted-foreground">ASCVD Risk Level</p>
+                      <p className={`font-semibold ${getRiskColor(selectedVital.ASCVDRiskLevel)}`}>
+                        {selectedVital.ASCVDRiskLevel}
                       </p>
                     </div>
                   )}
